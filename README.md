@@ -5,13 +5,17 @@ This plugin contains:
 - The Nuxeo platform addon to setup the webhook.
 - The Zapier plugin itself with triggers and actions for Nuxeo Platform.
 
-## Nuxeo Platform Webhook
+## Zapier Nuxeo Webhook
 
 Here is the future description of the webhook.
 
-## Zapier Plugin
+## Zapier App
 
-Here is the future description of the Zapier plugin features.
+Here is the future description of the Zapier app features.
+
+### Specifications
+
+https://jira.nuxeo.com/browse/NXP-26022
 
 ### The structure
 

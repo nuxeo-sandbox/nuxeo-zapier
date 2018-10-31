@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<component name="org.nuxeo.zapier.hook.cache.config">
+  <extension target="org.nuxeo.runtime.kv.KeyValueService" point="configuration">
+    <store name="nbmHooks-cache" class="org.nuxeo.runtime.kv.MemKeyValueStore">
+    </store>
+  </extension>
+</component>

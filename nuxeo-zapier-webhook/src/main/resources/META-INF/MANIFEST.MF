@@ -1,0 +1,13 @@
+Bundle-ActivationPolicy: lazy
+Bundle-ClassPath: .
+Manifest-Version: 1.0
+Bundle-Vendor: org.nuxeo.zapier
+Bundle-Version: 1.0.0
+Bundle-Name: nuxeo-brand-management-webengine
+Bundle-ManifestVersion: 2
+Bundle-SymbolicName: org.nuxeo.zapier.webhook;singleton=true
+Nuxeo-WebModule: org.nuxeo.zapier.webhook;name=register;extends=base;headless=true
+Nuxeo-Component: OSGI-INF/zapier-cache-config.xml,
+ OSGI-INF/zapier-hook-marshaller-contrib.xml,
+ OSGI-INF/zapier-services-contrib.xml
+

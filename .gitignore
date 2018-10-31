@@ -30,3 +30,4 @@ tmp
 .zapierapprc
 node_modules
 build
+.vscode

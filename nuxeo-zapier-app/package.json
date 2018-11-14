@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "repository": "nuxeo/nuxeo-zapier",
   "author": "Nuxeo",
-  "license": "BSD-3-Clause",
+  "license": "Apache-2-Clause",
   "main": "index.js",
   "scripts": {
     "test": "node node_modules/mocha/bin/mocha --recursive"
@@ -13,11 +13,20 @@
     "npm": ">=5.6.0"
   },
   "dependencies": {
-    "yo": "^2.0.5",
     "zapier-platform-core": "7.2.0"
   },
   "devDependencies": {
     "mocha": "^5.2.0",
     "should": "^13.2.0"
+  },
+  "eslintConfig": {
+    "env": {
+      "browser": true,
+      "node": true,
+      "es6": true
+    },
+    "parserOptions": {
+      "ecmaVersion": 2017
+    }
   }
 }

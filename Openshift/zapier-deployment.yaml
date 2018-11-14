@@ -1,0 +1,103 @@
+apiVersion: v1
+kind: DeploymentConfig
+metadata:
+  labels:
+    app: nuxeo-zapier
+    release: nuxeo
+  name: nuxeo-zapier
+spec:
+  replicas: 1
+  selector:
+    app: nuxeo-zapier
+    release: nuxeo
+  strategy:
+    activeDeadlineSeconds: 21600
+    resources: {}
+    rollingParams:
+      intervalSeconds: 1
+      maxSurge: 25%
+      maxUnavailable: 25%
+      timeoutSeconds: 600
+      updatePeriodSeconds: 1
+    type: Rolling
+  template:
+    metadata:
+      labels:
+        app: nuxeo-zapier
+        release: nuxeo
+    spec:
+      containers:
+      - env:
+        - name: NUXEO_TEMPLATES
+          value: 'default'
+        - name: NUXEO_CUSTOM_PARAM
+          value: |
+            nuxeo.instance.type=front
+        - name: NUXEO_PACKAGES
+          value: nuxeo-jsf-ui
+        - name: NUXEO_CLID
+          value: 'dd9501ff-fbd9-4758-8a7c-f9d839ef18d8.1810494513.Pm221bY6j4jzQcjci6AIpNNhVNRHBPDG2RNr3jdJgqHjW0msNWOB2YRKinrzWw+4apy6vklhyPbISylWs4QXinye/D68XUWSyn78D9F7vQ594T4n9+A3LVCUBoib7fzmiPRYme0NKcVqOiu7jOWUMalCfWTqm5DNiTnzlnRDqT45nsKSUXjq2YMwRpeHxzh2quoa/b0/jeSgLSXBkmTsTUZrAZBx1gqJZSLBYmN/0bkJ4jkG1jYjPHWPR/Qpjz+iF+6d5A6t3B/rlaqBkw4W/50u/Xg1gt/Ouz/wyiGIJ5+2NtI15oilbWQzNmTt3wLNo2RatHpzwDXhEQSLU1skBw==--338358dd-858e-4821-bad9-72bae7ae511e'
+        image: >-
+          docker-registry.default.svc:5000/zapier-demo/zapier:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        livenessProbe:
+          failureThreshold: 10
+          httpGet:
+            path: /nuxeo/runningstatus
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 10
+        name: nuxeo-zapier
+        readinessProbe:
+          failureThreshold: 3
+          httpGet:
+            path: /nuxeo/runningstatus
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 60
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 10
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: nuxeoconf
+          mountPath: /docker-entrypoint-initnuxeo.d/
+        - name: connect-secret
+          mountPath: /opt/nuxeo/connect
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - configMap:
+          name: nuxeo-conf
+        name: nuxeoconf
+      - name: connect-secret
+        secret:
+          secretName: nuxeo-connect
+      - name: tmp
+        emptyDir: {}
+      - name: nuxeolog
+        emptyDir: {}
+
+  triggers:
+  - type: ConfigChange
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - nuxeo-zapier
+      from:
+        kind: ImageStreamTag
+        name: 'zapier:latest'
+    type: ImageChange

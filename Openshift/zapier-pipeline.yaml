@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: BuildConfig
+metadata:
+  annotations:
+    pipeline.alpha.openshift.io/uses: '[{"name": "nuxeo", "namespace": "", "kind": "DeploymentConfig"}]'
+  labels:
+    name: nuxeo-zapier-build-pipeline
+  name: nuxeo-zapier-build-pipeline
+spec:
+  triggers:
+  - type: GitHub
+    github:
+      secret: sshgitkey
+  strategy:
+    jenkinsPipelineStrategy:
+      jenkinsfile: |-
+        try {
+           timeout(time: 60, unit: 'MINUTES') {
+              node {
+                  stage('build-app') {
+                    openshiftBuild(buildConfig: 'zapier-build', showBuildLogs: 'true', waitTime: '18000000')
+                  }
+                  stage('assemble-app') {
+                    openshiftBuild(buildConfig: 'zapier-app-assemble', showBuildLogs: 'true')
+                  }
+                  stage('deploy-dev-front') {
+                    openshiftDeploy(deploymentConfig: 'nuxeo-zapier')
+                  }
+              }
+           }
+        }  catch (err) {
+           echo "in catch block"
+           echo "Caught: ${err}"
+           currentBuild.result = 'FAILURE'
+           throw err
+        }
+  type: JenkinsPipeline
+  successfulBuildsHistoryLimit: 5
+  failedBuildsHistoryLimit: 5
+
+

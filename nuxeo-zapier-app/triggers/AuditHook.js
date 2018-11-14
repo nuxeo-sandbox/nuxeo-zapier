@@ -4,7 +4,7 @@ const subscribeHook = (z, bundle) => {
     event: bundle.inputData.events,
   };
   const options = {
-    url: 'http://nightly.nuxeo.com/nuxeo/site/hook',
+    url: 'http://zapier.apps.prod.nuxeo.io/nuxeo/site/hook',
     method: 'POST',
     body: JSON.stringify(data),
   };
@@ -15,7 +15,7 @@ const subscribeHook = (z, bundle) => {
 const unsubscribeHook = (z, bundle) => {
   const hookId = bundle.subscribeData.id;
   const options = {
-    url: `http://nightly.nuxeo.com/nuxeo/site/hook/${hookId}`,
+    url: `http://zapier.apps.prod.nuxeo.io/nuxeo/site/hook/${hookId}`,
     method: 'DELETE',
   };
   return z.request(options)
@@ -38,7 +38,7 @@ const getAuditEvent = (z, bundle) => {
 
 const triggerAuditHook = (z, bundle) => {
   const request = {
-    url: 'http://nightly.nuxeo.com/nuxeo/site/hook/auditexample',
+    url: 'http://zapier.apps.prod.nuxeo.io/nuxeo/site/hook/auditexample',
     params: {},
   };
   return z.request(request).then((response) => {

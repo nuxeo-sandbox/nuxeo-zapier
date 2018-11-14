@@ -1,8 +1,7 @@
 const projectTrigger = require('./triggers/project');
 const deliverableSetTrigger = require('./triggers/deliverableSet');
 const taskCreate = require('./creates/task');
-const basic = require('./auth/basic');
-// const oauth = require('./auth/oauth');
+const oauth = require('./auth/oauth');
 const AuditHook = require('./triggers/AuditHook');
 
 const handleHTTPError = (response, z) => {
@@ -12,25 +11,22 @@ const handleHTTPError = (response, z) => {
   return response;
 };
 
-// To include the Authorization header on all outbound requests, simply define a function here.
-// It runs runs before each request is sent out, allowing you to make tweaks to the request in a centralized spot
-// const includeBearerToken = (request, z, bundle) => {
-//   if (bundle.authData.access_token) {
-//     request.headers.Authorization = `Bearer ${bundle.authData.access_token}`;
-//   }
-//   return request;
-// };
+// To include the Authorization header on all outbound requests
+const includeBearerToken = (request, z, bundle) => {
+  if (bundle.authData.access_token) {
+    request.headers.Authorization = `Bearer ${bundle.authData.access_token}`;
+  }
+  return request;
+};
 
 const App = {
   version: require('./package.json').version,
   platformVersion: require('zapier-platform-core').version,
-  authentication: basic,
+  authentication: oauth,
 
-  // beforeRequest: [
-  //   includeBearerToken,
-  // ],
-
-  beforeRequest: [],
+  beforeRequest: [
+    includeBearerToken,
+  ],
 
   afterResponse: [
     handleHTTPError,
@@ -51,5 +47,4 @@ const App = {
   },
 };
 
-// Finally, export the app.
 module.exports = App;

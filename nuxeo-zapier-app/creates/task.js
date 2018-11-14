@@ -3,7 +3,7 @@
 const createTask = (z, bundle) => {
   const responsePromise = z.request({
     method: 'POST',
-    url: 'http://nightly.nuxeo.com/nuxeo/api/v1/automation/NBM.CreateTask',
+    url: 'http://zapier.apps.prod.nuxeo.io/nuxeo/api/v1/automation/NBM.CreateTask',
     body: JSON.stringify({
       title: bundle.inputData.title,
     }),

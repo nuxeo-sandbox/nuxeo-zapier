@@ -1,9 +1,8 @@
 const triggerDeliverableSet = (z, bundle) => {
   const request = {
-    url: 'http://nightly.nuxeo.com/nuxeo/api/v1/search/pp/list_project_deliverable_sets/execute',
+    url: 'http://zapier.apps.prod.nuxeo.io/nuxeo/api/v1/search/pp/list_project_deliverable_sets/execute',
     params: {},
   };
-  z.console.log('Input:' + JSON.stringify(bundle.inputData));
   request.params.queryParams = bundle.inputData.path;
   return z.request(request).then((response) => {
     let results = z.JSON.parse(response.content).entries;

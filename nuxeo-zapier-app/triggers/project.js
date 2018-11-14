@@ -1,6 +1,6 @@
 const triggerProject = (z, bundle) => {
   const request = {
-    url: 'http://nightly.nuxeo.com/nuxeo/api/v1/search/pp/list_projects/execute',
+    url: 'http://zapier.apps.prod.nuxeo.io/nuxeo/api/v1/search/pp/default_document_suggestion/execute',
     params: {},
   };
 

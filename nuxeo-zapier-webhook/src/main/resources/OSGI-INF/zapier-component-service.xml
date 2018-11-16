@@ -2,4 +2,7 @@
 <component name="org.nuxeo.zapier.ZapierComponent">
   <require>org.nuxeo.ecm.platform.oauth.directoryContrib</require>
   <implementation class="org.nuxeo.zapier.ZapierComponent"/>
+  <service>
+    <provide interface="org.nuxeo.zapier.service.ZapierService"/>
+  </service>
 </component>

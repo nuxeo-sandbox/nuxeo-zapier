@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<component name="org.nuxeo.zapier.listeners">
+  <extension target="org.nuxeo.ecm.core.event.EventServiceComponent" point="listener">
+    <listener name="zapierEvents" async="true" postCommit="true" priority="0"
+              class="org.nuxeo.zapier.listener.ZapierEventListener">
+      <event>documentCreated</event>
+      <event>documentTrashed</event>
+      <event>documentModified</event>
+      <event>documentMoved</event>
+      <event>lifecycle_transition_event</event>
+    </listener>
+  </extension>
+</component>

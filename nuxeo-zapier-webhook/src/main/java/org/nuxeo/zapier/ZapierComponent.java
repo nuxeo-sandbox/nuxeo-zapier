@@ -16,24 +16,19 @@
  */
 package org.nuxeo.zapier;
 
-import static org.nuxeo.zapier.Constants.AUTO_GRANT;
-import static org.nuxeo.zapier.Constants.CLIENT_ID;
-import static org.nuxeo.zapier.Constants.ENABLED;
-import static org.nuxeo.zapier.Constants.NUXEO_ZAPIER;
-import static org.nuxeo.zapier.Constants.NUXEO_ZAPIER_NAME;
-import static org.nuxeo.zapier.Constants.OAUTH_2_CLIENTS_DIRECTORY;
-import static org.nuxeo.zapier.Constants.REDIRECT_UR_IS;
-import static org.nuxeo.zapier.Constants.ZAPIER_REDIRECT_URI_KEY;
-
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import org.nuxeo.ecm.core.event.EventBundle;
 import org.nuxeo.ecm.directory.Session;
 import org.nuxeo.ecm.directory.api.DirectoryService;
 import org.nuxeo.runtime.api.Framework;
 import org.nuxeo.runtime.model.ComponentContext;
 import org.nuxeo.runtime.model.DefaultComponent;
+import org.nuxeo.zapier.service.ZapierService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,24 +37,42 @@ import com.google.common.collect.ImmutableMap;
 /**
  * @since 0.1
  */
-public class ZapierComponent extends DefaultComponent {
+public class ZapierComponent extends DefaultComponent implements ZapierService {
 
     private static final Logger log = LoggerFactory.getLogger(ZapierComponent.class);
+
+    private List<EventBundle> eventBundles = new ArrayList<>();
 
     @Override
     public void start(ComponentContext context) {
         log.info("Zapier component activation: oauth provider setup");
         DirectoryService directoryService = Framework.getService(DirectoryService.class);
         Framework.doPrivileged(() -> {
-            try (Session s = directoryService.open(OAUTH_2_CLIENTS_DIRECTORY)) {
+            try (Session s = directoryService.open(Constants.OAUTH_2_CLIENTS_DIRECTORY)) {
                 Map<String, Serializable> filter = new HashMap<>();
-                filter.put(CLIENT_ID, NUXEO_ZAPIER);
+                filter.put(Constants.CLIENT_ID, Constants.NUXEO_ZAPIER);
                 if (s.query(filter).isEmpty()) {
-                    s.createEntry(
-                            ImmutableMap.of(CLIENT_ID, NUXEO_ZAPIER, Constants.NAME, NUXEO_ZAPIER_NAME, REDIRECT_UR_IS,
-                                    Framework.getProperty(ZAPIER_REDIRECT_URI_KEY), ENABLED, true, AUTO_GRANT, true));
+                    s.createEntry(ImmutableMap.of(Constants.CLIENT_ID, Constants.NUXEO_ZAPIER, Constants.NAME,
+                            Constants.NUXEO_ZAPIER_NAME, Constants.REDIRECT_UR_IS,
+                            Framework.getProperty(Constants.ZAPIER_REDIRECT_URI_KEY), Constants.ENABLED, true,
+                            Constants.AUTO_GRANT, true));
                 }
             }
         });
+    }
+
+    @Override
+    public List<EventBundle> getEventBundles() {
+        return eventBundles;
+    }
+
+    @Override
+    public void setEventBundles(List<EventBundle> eventBundles) {
+        this.eventBundles = eventBundles;
+    }
+
+    @Override
+    public void addEventBundle(EventBundle eventBundle) {
+        this.eventBundles.add(eventBundle);
     }
 }

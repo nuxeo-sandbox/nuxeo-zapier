@@ -3,6 +3,9 @@ const deliverableSetTrigger = require('./triggers/deliverableSet');
 const taskCreate = require('./creates/task');
 const oauth = require('./auth/oauth');
 const AuditHook = require('./triggers/AuditHook');
+const spikeBlob = require('./triggers/spikeBlob');
+const spikeBlobCreate = require('./creates/spikeBlobCreate');
+const hydrators = require('./hydrators');
 
 const handleHTTPError = (response, z) => {
   if (response.status >= 400) {
@@ -32,18 +35,22 @@ const App = {
     handleHTTPError,
   ],
 
+  hydrators: hydrators,
+
   resources: {},
 
   triggers: {
     [projectTrigger.key]: projectTrigger,
     [deliverableSetTrigger.key]: deliverableSetTrigger,
-    [AuditHook.key]: AuditHook,
+    // [AuditHook.key]: AuditHook,
+    [spikeBlob.key]: spikeBlob,
   },
 
   searches: {},
 
   creates: {
     [taskCreate.key]: taskCreate,
+    [spikeBlobCreate.key]: spikeBlobCreate,
   },
 };
 

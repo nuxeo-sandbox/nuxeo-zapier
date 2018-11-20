@@ -1,7 +1,8 @@
 const subscribeHook = (z, bundle) => {
   const data = {
     url: bundle.targetUrl,
-    event: bundle.inputData.events,
+    events: bundle.inputData.events,
+    docTypes: bundle.inputData.docTypes,
   };
   const options = {
     url: 'http://zapier.apps.prod.nuxeo.io/nuxeo/site/hook',
@@ -23,17 +24,8 @@ const unsubscribeHook = (z, bundle) => {
 };
 
 const getAuditEvent = (z, bundle) => {
-  // bundle.cleanedRequest will include the parsed JSON object (if it's not a
-  // test poll) and also a .querystring property with the URL's query string.
-  const auditEvent = {
-    id: bundle.cleanedRequest.uid,
-    docUUID: bundle.cleanedRequest.docUUID,
-    docLifeCycle: bundle.cleanedRequest.docLifeCycle,
-    docPath: bundle.cleanedRequest.docPath,
-    principalName: bundle.cleanedRequest.principalName,
-  };
-
-  return [auditEvent];
+  z.console.log("clean request:" + JSON.stringify(bundle.cleanedRequest));
+  return bundle.cleanedRequest;
 };
 
 const triggerAuditHook = (z, bundle) => {
@@ -48,22 +40,55 @@ const triggerAuditHook = (z, bundle) => {
 
 module.exports = {
   key: 'auditHook',
-  noun: 'AuditHook',
+  noun: 'Events Hook',
 
   display: {
-    label: 'Get Audit Event',
-    description: 'Receive Audit Event',
+    label: 'Get Nuxeo Events',
+    description: 'Intercept Nuxeo events for given document types',
   },
 
   operation: {
     type: 'hook',
 
     inputFields: [
-      {
-        key: 'events',
-        required: true,
-        list: true,
-        choices: {documentCreated: 'Creation event', documentModified: 'Modification event'},
+      function (z, bundle) {
+        const request = {
+          url: 'http://zapier.apps.prod.nuxeo.io/nuxeo/site/hook/events',
+          params: {},
+        };
+        return z.request(request).then((response) => {
+          const events = JSON.parse(response.content);
+          let entries = {};
+          entries.key = 'events';
+          entries.helpText = 'Choose the events to filter on';
+          entries.choices = {};
+          entries.list = true;
+          entries.default = 'documentCreated';
+          events.forEach((value) => {
+            entries.choices[value] = value;
+          });
+          return entries;
+        });
+      },
+      function (z, bundle) {
+        const request = {
+          url: 'http://zapier.apps.prod.nuxeo.io/nuxeo/api/v1/config/types',
+          params: {},
+        };
+        return z.request(request).then((response) => {
+          const types = JSON.parse(response.content).doctypes;
+          let entries = {};
+          entries.key = 'docTypes';
+          entries.label = 'Document Types';
+          entries.helpText = 'Choose the document types to filter on';
+          entries.choices = {};
+          entries.list = true;
+          entries.default = 'File';
+          Object.keys(types).forEach((key) => {
+            entries.choices[key] = key;
+          });
+          return entries;
+        });
       },
     ],
 

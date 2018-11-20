@@ -16,6 +16,7 @@
  */
 package org.nuxeo.zapier.webhook;
 
+import java.awt.*;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,6 +43,9 @@ import org.nuxeo.runtime.api.Framework;
 import org.nuxeo.zapier.service.CacheService;
 
 import com.sun.jersey.api.NotFoundException;
+import org.nuxeo.zapier.service.ZapierService;
+
+import static org.nuxeo.zapier.Constants.HOOK_CACHE_ID;
 
 /**
  * @since 0.1
@@ -50,8 +54,6 @@ import com.sun.jersey.api.NotFoundException;
 @WebObject(type = "hook")
 @Produces(MediaType.APPLICATION_JSON)
 public class HookObject extends ModuleRoot {
-
-    private static final String HOOK_CACHE_ID = "zapier-hook-cache";
 
     private static final Log log = LogFactory.getLog(HookObject.class);
 
@@ -66,8 +68,7 @@ public class HookObject extends ModuleRoot {
     @Path("{hookId}")
     public Blob doGet(@PathParam("hookId") String hookId) throws IOException {
         CacheService cacheService = Framework.getService(CacheService.class);
-        Hook hook = (Hook) cacheService.get(HOOK_CACHE_ID, hookId,
-                Hook.class);
+        Hook hook = (Hook) cacheService.get(HOOK_CACHE_ID, hookId, Hook.class);
         Map<String, String> idJson = new HashMap<>();
         idJson.put("id", hook.getEvents().toString());
         idJson.put("event", hook.getEvents().toString());
@@ -77,7 +78,7 @@ public class HookObject extends ModuleRoot {
 
     @GET
     @Path("/auditexample")
-    public Blob doGet() throws IOException {
+    public Blob getExample() throws IOException {
         List<Map<String, String>> jsonArray = new ArrayList<>();
         Map<String, String> idJson = new HashMap<>();
         idJson.put("id", "202");
@@ -93,6 +94,18 @@ public class HookObject extends ModuleRoot {
         idJson.put("eventDate", "2018-09-06T00:00:00.524Z");
         idJson.put("extended", "");
         jsonArray.add(idJson);
+        return Blobs.createJSONBlobFromValue(jsonArray);
+    }
+
+    @GET
+    @Path("/events")
+    public Blob getEvents() throws IOException {
+        List<String> jsonArray = new ArrayList<>();
+        jsonArray.add("documentCreated");
+        jsonArray.add("documentModified");
+        jsonArray.add("documentTrashed");
+        jsonArray.add("documentMoved");
+        jsonArray.add("lifecycle_transition_event");
         return Blobs.createJSONBlobFromValue(jsonArray);
     }
 
@@ -112,11 +125,10 @@ public class HookObject extends ModuleRoot {
 
     @POST
     public Blob doPost(Hook hook) throws IOException {
-        CacheService cacheService = Framework.getService(CacheService.class);
-        cacheService.push(HOOK_CACHE_ID, ctx.getCoreSession().getPrincipal().getName(), hook);
         Map<String, String> idJson = new HashMap<>();
         idJson.put("id", hook.getEvents().toString());
-        log.warn("targetUrl:" + hook.getTargetUrl());
+        ZapierService zapierService = Framework.getService(ZapierService.class);
+        zapierService.registerHook(hook, ctx);
         return Blobs.createJSONBlobFromValue(idJson);
     }
 

@@ -38,6 +38,7 @@ public class HookJsonReader extends AbstractJsonReader<Hook> {
         Hook hook = new Hook();
         hook.setTargetUrl(jsonNode.get("url").asText());
         hook.setEvents(getStringListField(jsonNode,"events"));
+        hook.setDocTypes(getStringListField(jsonNode,"docTypes"));
         return hook;
     }
 

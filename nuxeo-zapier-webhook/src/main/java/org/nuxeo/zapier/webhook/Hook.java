@@ -28,6 +28,8 @@ public class Hook implements Serializable {
 
     protected List<String> events;
 
+    protected List<String> docTypes;
+
     protected String entity;
 
     public Hook() {
@@ -56,5 +58,13 @@ public class Hook implements Serializable {
 
     public void setEvents(List<String> events) {
         this.events = events;
+    }
+
+    public List<String> getDocTypes() {
+        return docTypes;
+    }
+
+    public void setDocTypes(List<String> docTypes) {
+        this.docTypes = docTypes;
     }
 }

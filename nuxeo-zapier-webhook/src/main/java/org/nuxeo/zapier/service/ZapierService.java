@@ -19,6 +19,8 @@ package org.nuxeo.zapier.service;
 import java.util.List;
 
 import org.nuxeo.ecm.core.event.EventBundle;
+import org.nuxeo.ecm.webengine.model.WebContext;
+import org.nuxeo.zapier.webhook.Hook;
 
 /**
  * @since 0.1
@@ -27,7 +29,7 @@ public interface ZapierService {
 
     List<EventBundle> getEventBundles();
 
-    void setEventBundles(List<EventBundle> eventBundles);
+    void sendEventBundle(EventBundle eventBundle);
 
-    void addEventBundle(EventBundle eventBundle);
+    void registerHook(Hook hook, WebContext ctx);
 }

@@ -29,7 +29,7 @@ public class ZapierEventListener implements PostCommitEventListener {
     @Override
     public void handleEvent(EventBundle eventBundle) {
         ZapierService zapierService = Framework.getService(ZapierService.class);
-        zapierService.addEventBundle(eventBundle);
+        zapierService.sendEventBundle(eventBundle);
     }
 
 }

@@ -96,5 +96,5 @@ module.exports = {
       },
     ],
   test: testAuth,
-  connectionLabel: '{{username}}'
+  connectionLabel: '- Connected via OAuth',
 };

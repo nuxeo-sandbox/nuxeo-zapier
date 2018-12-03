@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "repository": "nuxeo/nuxeo-zapier",
   "author": "Nuxeo",
-  "license": "Apache-2-Clause",
+  "license": "Nuxeo",
   "main": "index.js",
   "scripts": {
     "test": "node node_modules/mocha/bin/mocha --recursive"

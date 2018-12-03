@@ -1,3 +1,11 @@
+/*
+ * (C) Copyright 2018 Nuxeo SA (http://nuxeo.com/).
+ * This is unpublished proprietary source code of Nuxeo SA. All rights reserved.
+ * Notice of copyright on this source code does not indicate publication.
+ *
+ * Contributors:
+ *     Nuxeo
+ */
 const getAccessToken = (z, bundle) => {
   const promise = z.request(`{{bundle.inputData.url}}/nuxeo/oauth2/access-token`, {
     method: 'POST',

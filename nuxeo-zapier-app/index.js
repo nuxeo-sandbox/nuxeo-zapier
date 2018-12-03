@@ -1,8 +1,11 @@
-const projectTrigger = require('./triggers/project');
-const deliverableSetTrigger = require('./triggers/deliverableSet');
-const taskCreate = require('./creates/task');
 const oauth = require('./auth/oauth');
+const AutomationOperation = require('./creates/automationOperation');
 const AuditHook = require('./triggers/AuditHook');
+const DocumentCreation = require('./creates/documentCreation');
+const DocumentUpdate = require('./creates/documentUpdate');
+const DocumentAttach = require('./creates/documentAttach');
+const StartWorkflow = require('./creates/startWorkflow');
+const FileManager = require('./creates/fileImporter');
 
 const handleHTTPError = (response, z) => {
   if (response.status >= 400) {
@@ -35,15 +38,18 @@ const App = {
   resources: {},
 
   triggers: {
-    [projectTrigger.key]: projectTrigger,
-    [deliverableSetTrigger.key]: deliverableSetTrigger,
     [AuditHook.key]: AuditHook,
   },
 
   searches: {},
 
   creates: {
-    [taskCreate.key]: taskCreate,
+    [AutomationOperation.key]: AutomationOperation,
+    [DocumentCreation.key]: DocumentCreation,
+    [DocumentUpdate.key]: DocumentUpdate,
+    [DocumentAttach.key]: DocumentAttach,
+    [StartWorkflow.key]: StartWorkflow,
+    [FileManager.key]: FileManager,
   },
 };
 

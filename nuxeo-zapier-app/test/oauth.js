@@ -8,7 +8,7 @@ const appTester = zapier.createAppTester(App);
 describe('oauth2 app', () => {
   it('generates an authorize URL', () => {
     const bundle = {
-      inputData: {
+      authData: {
         redirect_uri: getRedirectURI,
         state: 'stateless'
       },
@@ -18,7 +18,7 @@ describe('oauth2 app', () => {
       }
     };
 
-    bundle.inputData.url = getURL();
+    bundle.authData.url = getURL();
 
     return appTester(App.authentication.oauth2Config.authorizeUrl, bundle)
       .then((authorizeUrl) => {
@@ -29,7 +29,7 @@ describe('oauth2 app', () => {
 
   it('can fetch an access token', () => {
     const bundle = {
-      inputData: {
+      authData: {
         secret: 'secret',
         code: 'bbr11be7Pl',
       },
@@ -39,7 +39,7 @@ describe('oauth2 app', () => {
       },
     };
 
-    bundle.inputData.url = getURL();
+    bundle.authData.url = getURL();
 
     return appTester(App.authentication.oauth2Config.getAccessToken, bundle)
       .then((result) => {
@@ -60,10 +60,9 @@ describe('oauth2 app', () => {
         CLIENT_ID: getClientId(),
         CLIENT_SECRET: getSecret(),
       },
-      inputData: {},
     };
 
-    bundle.inputData.url = getURL();
+    bundle.authData.url = getURL();
 
     return appTester(App.authentication.oauth2Config.refreshAccessToken, bundle)
       .then((result) => {
@@ -77,10 +76,9 @@ describe('oauth2 app', () => {
         access_token: 'a_token',
         refresh_token: 'a_refresh_token'
       },
-      inputData: {},
     };
 
-    bundle.inputData.url = getURL();
+    bundle.authData.url = getURL();
 
     return appTester(App.authentication.test, bundle)
       .then((result) => {

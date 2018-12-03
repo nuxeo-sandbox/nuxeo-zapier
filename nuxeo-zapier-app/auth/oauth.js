@@ -7,7 +7,7 @@
  *     Nuxeo
  */
 const getAccessToken = (z, bundle) => {
-  const promise = z.request(`{{bundle.inputData.url}}/nuxeo/oauth2/access-token`, {
+  const promise = z.request(`${bundle.inputData.url}/nuxeo/oauth2/access-token`, {
     method: 'POST',
     body: {
       code: bundle.inputData.code,
@@ -32,10 +32,10 @@ const getAccessToken = (z, bundle) => {
   });
 };
 
-const testAuth = (z /* , bundle*/) => {
+const testAuth = (z, bundle) => {
   const promise = z.request({
     method: 'GET',
-    url: 'http://zapier.apps.prod.nuxeo.io/nuxeo/json/cmis',
+    url: `${bundle.authData.url}/nuxeo/json/cmis`,
   });
   return promise.then((response) => {
     if (response.status === 401) {
@@ -46,7 +46,7 @@ const testAuth = (z /* , bundle*/) => {
 };
 
 const refreshAccessToken = (z, bundle) => {
-  const promise = z.request(`{{bundle.inputData.url}}/oauth/refresh-token`, {
+  const promise = z.request(`${bundle.inputData.url}/oauth/refresh-token`, {
     method: 'POST',
     body: {
       refresh_token: bundle.authData.refresh_token,

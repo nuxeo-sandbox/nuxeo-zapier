@@ -32,7 +32,6 @@ const unsubscribeHook = (z, bundle) => {
 };
 
 const getAuditEvent = (z, bundle) => {
-  z.console.log("clean request:" + JSON.stringify(bundle.cleanedRequest));
   return bundle.cleanedRequest;
 };
 

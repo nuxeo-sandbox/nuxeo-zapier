@@ -5,7 +5,7 @@ const subscribeHook = (z, bundle) => {
     docTypes: bundle.inputData.docTypes,
   };
   const options = {
-    url: 'http://zapier.apps.prod.nuxeo.io/nuxeo/site/hook',
+    url: `${bundle.authData.url}/nuxeo/site/hook`,
     method: 'POST',
     body: JSON.stringify(data),
   };
@@ -16,7 +16,7 @@ const subscribeHook = (z, bundle) => {
 const unsubscribeHook = (z, bundle) => {
   const hookId = bundle.subscribeData.id;
   const options = {
-    url: `http://zapier.apps.prod.nuxeo.io/nuxeo/site/hook/${hookId}`,
+    url: `${bundle.authData.url}/nuxeo/site/hook/${hookId}`,
     method: 'DELETE',
   };
   return z.request(options)
@@ -30,7 +30,7 @@ const getAuditEvent = (z, bundle) => {
 
 const triggerAuditHook = (z, bundle) => {
   const request = {
-    url: 'http://zapier.apps.prod.nuxeo.io/nuxeo/site/hook/auditexample',
+    url: `${bundle.authData.url}/nuxeo/site/hook/auditexample`,
     params: {},
   };
   return z.request(request).then((response) => {
@@ -53,7 +53,7 @@ module.exports = {
     inputFields: [
       function (z, bundle) {
         const request = {
-          url: 'http://zapier.apps.prod.nuxeo.io/nuxeo/site/hook/events',
+          url: `${bundle.authData.url}/nuxeo/site/hook/events`,
           params: {},
         };
         return z.request(request).then((response) => {
@@ -72,7 +72,7 @@ module.exports = {
       },
       function (z, bundle) {
         const request = {
-          url: 'http://zapier.apps.prod.nuxeo.io/nuxeo/api/v1/config/types',
+          url: `${bundle.authData.url}/nuxeo/api/v1/config/types`,
           params: {},
         };
         return z.request(request).then((response) => {

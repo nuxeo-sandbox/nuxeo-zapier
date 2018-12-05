@@ -4,7 +4,7 @@
   <parent>
     <groupId>org.nuxeo.ecm.distribution</groupId>
     <artifactId>nuxeo-distribution</artifactId>
-    <version>10.2</version>
+    <version>10.3-SNAPSHOT</version>
   </parent>
 
   <groupId>org.nuxeo.zapier</groupId>
@@ -46,14 +46,14 @@
       </snapshots>
     </repository>
     <repository>
-      <id>public-snapshot</id>
-      <url>http://maven.nuxeo.org/nexus/content/groups/public-snapshot</url>
+      <id>private-snapshots</id>
+      <url>https://mavenpriv.nuxeo.com/nexus/content/groups/private-snapshots/</url>
       <releases>
         <enabled>false</enabled>
       </releases>
       <snapshots>
-        <updatePolicy>always</updatePolicy>
         <enabled>true</enabled>
+        <updatePolicy>always</updatePolicy>
       </snapshots>
     </repository>
   </repositories>

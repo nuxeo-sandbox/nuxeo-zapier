@@ -19,26 +19,31 @@ package org.nuxeo.zapier.webhook;
 import static org.nuxeo.ecm.core.io.registry.reflect.Instantiations.SINGLETON;
 import static org.nuxeo.ecm.core.io.registry.reflect.Priorities.REFERENCE;
 
+import java.util.Map;
+
 import org.nuxeo.ecm.core.io.marshallers.json.AbstractJsonReader;
 import org.nuxeo.ecm.core.io.registry.reflect.Setup;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * The reader for the Zapier hook. Example:
- * {"url":"https://hooks.zapier.com/hooks/standard/3397485/cdd3f24afecc42d88199175f8d82f1bf/","event":["documentCreated","documentModified"]}
+ * {"url":"https://hooks.zapier.com/hooks/standard/3397485/cdd3f24afecc42d88199175f8d82f1bf/","resolver":"example1",
+ * "requiredFields": ["1","2"]}
  *
  * @since 0.1
  */
 @Setup(mode = SINGLETON, priority = REFERENCE)
-public class HookJsonReader extends AbstractJsonReader<Hook> {
+public class WebHookJsonReader extends AbstractJsonReader<WebHook> {
 
     @Override
-    public Hook read(JsonNode jsonNode) {
-        Hook hook = new Hook();
+    public WebHook read(JsonNode jsonNode) {
+        WebHook hook = new WebHook();
         hook.setTargetUrl(jsonNode.get("url").asText());
-        hook.setEvents(getStringListField(jsonNode,"events"));
-        hook.setDocTypes(getStringListField(jsonNode,"docTypes"));
+        hook.setResolverId(jsonNode.get("resolver").asText());
+        ObjectMapper mapper = new ObjectMapper();
+        hook.setRequiredFields(mapper.convertValue(jsonNode.get("requiredFields"), Map.class));
         return hook;
     }
 

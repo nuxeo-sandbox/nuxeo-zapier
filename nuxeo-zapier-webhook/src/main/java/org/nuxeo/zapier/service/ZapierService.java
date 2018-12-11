@@ -18,18 +18,25 @@ package org.nuxeo.zapier.service;
 
 import java.util.List;
 
-import org.nuxeo.ecm.core.event.EventBundle;
-import org.nuxeo.ecm.webengine.model.WebContext;
-import org.nuxeo.zapier.webhook.Hook;
+import org.nuxeo.ecm.notification.message.Notification;
+import org.nuxeo.zapier.webhook.WebHook;
 
 /**
  * @since 0.1
  */
 public interface ZapierService {
 
-    List<EventBundle> getEventBundles();
+    void subscribe(WebHook hook, String username);
 
-    void sendEventBundle(EventBundle eventBundle);
+    void unsubscribe(WebHook hook, String username);
 
-    void registerHook(Hook hook, WebContext ctx);
+    void unsubscribeAll(String username);
+
+    void postNotification(Notification notification);
+
+    void store(String cacheName, String entryId, List<WebHook> input);
+
+    List<WebHook> fetch(String cacheName, String entryId);
+
+    void remove(String cacheName, String entryId);
 }

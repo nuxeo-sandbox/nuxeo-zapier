@@ -16,7 +16,7 @@
  *      Nuxeo
  */
 
-package org.nuxeo.zapier.webhook;
+package org.nuxeo.zapier.notifier;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -24,7 +24,7 @@ import org.nuxeo.ecm.notification.message.Notification;
 import org.nuxeo.ecm.notification.notifier.Notifier;
 import org.nuxeo.ecm.notification.notifier.NotifierDescriptor;
 import org.nuxeo.runtime.api.Framework;
-import org.nuxeo.zapier.ZapierComponent;
+import org.nuxeo.zapier.service.ZapierComponent;
 
 /**
  * @since 0.1
@@ -38,8 +38,7 @@ public class WebHookNotifier extends Notifier {
 
     @Override
     public void process(Notification notification) {
-        ZapierComponent zapierComponent = Framework.getService(ZapierComponent.class);
-        // zapierComponent.sendEventBundle();
+        Framework.getService(ZapierComponent.class).postNotification(notification);
     }
 
 }

@@ -18,19 +18,16 @@
 
 package org.nuxeo.zapier.notifier;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.nuxeo.ecm.notification.message.Notification;
 import org.nuxeo.ecm.notification.notifier.Notifier;
 import org.nuxeo.ecm.notification.notifier.NotifierDescriptor;
 import org.nuxeo.runtime.api.Framework;
-import org.nuxeo.zapier.service.ZapierComponent;
+import org.nuxeo.zapier.service.ZapierService;
 
 /**
  * @since 0.1
  */
 public class WebHookNotifier extends Notifier {
-    private static final Logger log = LogManager.getLogger(WebHookNotifier.class);
 
     public WebHookNotifier(NotifierDescriptor desc) {
         super(desc);
@@ -38,7 +35,11 @@ public class WebHookNotifier extends Notifier {
 
     @Override
     public void process(Notification notification) {
-        Framework.getService(ZapierComponent.class).postNotification(notification);
+        Framework.getService(ZapierService.class).postNotification(notification);
     }
 
+    @Override
+    protected boolean isEnabled(Notification notification) {
+        return true;
+    }
 }

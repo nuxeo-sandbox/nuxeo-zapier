@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import javax.ws.rs.core.MediaType;
 
@@ -56,6 +55,7 @@ import org.nuxeo.runtime.kv.KeyValueService;
 import org.nuxeo.runtime.kv.KeyValueStore;
 import org.nuxeo.runtime.model.ComponentContext;
 import org.nuxeo.runtime.model.DefaultComponent;
+import org.nuxeo.runtime.transaction.TransactionHelper;
 import org.nuxeo.zapier.Constants;
 import org.nuxeo.zapier.webhook.WebHook;
 import org.slf4j.Logger;
@@ -64,7 +64,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.ImmutableMap;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
 
@@ -129,36 +128,37 @@ public class ZapierComponent extends DefaultComponent implements ZapierService {
         String username = notification.getUsername();
         Map<String, String> context = notification.getContext();
         String repositoryName = notification.getSourceRepository();
-        try (CloseableCoreSession systemSession = CoreInstance.openCoreSessionSystem(repositoryName)) {
-            DocumentModel document = systemSession.getDocument(new IdRef(notification.getSourceId()));
-            CoreInstance.doPrivileged(systemSession, s -> {
-                // Getting the hook info
-                List<WebHook> webHooks = fetch(HOOK_CACHE_ID, username);
-                // Filter webHooks for the given resolver
-                webHooks = webHooks.stream()
-                                   .filter((hook) -> hook.getResolverId().equals(notification.getResolverId()))
-                                   .collect(Collectors.toList());
-                // Posting notification(s) to Zapier
-                ClientConfig config = new DefaultClientConfig();
-                Client client = Client.create(config);
-                List<Map<String, String>> jsonArray = new ArrayList<>();
-                Map<String, String> idJson = new HashMap<>();
-                idJson.put("id", username);
-                idJson.put("docUrl", getURL(document));
-                idJson.put("message", context.get("message"));
-                jsonArray.add(idJson);
-                // Simplify with https://zapier.com/help/webhooks/#triggering-multiple-webhooks-at-once
-                webHooks.forEach((hook) -> {
-                    WebResource webResource = client.resource(hook.getTargetUrl());
-                    try {
-                        webResource.type(MediaType.APPLICATION_JSON_TYPE).post(ClientResponse.class,
-                                Blobs.createJSONBlobFromValue(jsonArray).getString());
-                    } catch (IOException e) {
-                        throw new NuxeoException(e);
-                    }
+        TransactionHelper.runInTransaction(() -> {
+            try (CloseableCoreSession systemSession = CoreInstance.openCoreSessionSystem(repositoryName)) {
+                DocumentModel document = systemSession.getDocument(new IdRef(notification.getSourceId()));
+                CoreInstance.doPrivileged(systemSession, s -> {
+                    // Posting notification(s) to Zapier
+                    ClientConfig config = new DefaultClientConfig();
+                    Client client = Client.create(config);
+                    List<Map<String, String>> jsonArray = new ArrayList<>();
+                    Map<String, String> idJson = new HashMap<>();
+                    idJson.put("id", username);
+                    idJson.put("docUrl", getURL(document));
+                    idJson.put("message", context.get("message"));
+                    jsonArray.add(idJson);
+
+                    // Simplify with https://zapier.com/help/webhooks/#triggering-multiple-webhooks-at-once
+                    fetch(HOOK_CACHE_ID, username).stream()
+                                                  .filter(hook -> hook.getResolverId()
+                                                                      .equals(notification.getResolverId()))
+                                                  .map(hook -> client.resource(hook.getTargetUrl()))
+                                                  .forEach(res -> {
+                                                      try {
+                                                          res.type(MediaType.APPLICATION_JSON_TYPE).post(
+                                                                  ClientResponse.class,
+                                                                  Blobs.createJSONBlobFromValue(jsonArray).getString());
+                                                      } catch (IOException e) {
+                                                          throw new NuxeoException(e);
+                                                      }
+                                                  });
                 });
-            });
-        }
+            }
+        });
     }
 
     @Override

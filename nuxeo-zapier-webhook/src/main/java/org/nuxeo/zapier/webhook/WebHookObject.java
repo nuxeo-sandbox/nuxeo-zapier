@@ -24,11 +24,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -37,8 +37,6 @@ import javax.ws.rs.core.Response;
 
 import org.nuxeo.ecm.core.api.Blob;
 import org.nuxeo.ecm.core.api.Blobs;
-import org.nuxeo.ecm.notification.NotificationService;
-import org.nuxeo.ecm.notification.resolver.Resolver;
 import org.nuxeo.ecm.webengine.model.WebObject;
 import org.nuxeo.ecm.webengine.model.impl.ModuleRoot;
 import org.nuxeo.runtime.api.Framework;
@@ -89,27 +87,14 @@ public class WebHookObject extends ModuleRoot {
         return Blobs.createJSONBlobFromValue(jsonArray);
     }
 
-    @GET
-    @Path("/resolvers")
-    public List<Resolver> getResolvers() throws IOException {
-        NotificationService notificationService = Framework.getService(NotificationService.class);
-        List<Resolver> resolvers = new ArrayList<>(notificationService.getResolvers());
-        return resolvers;
-    }
-
     @DELETE
     @Path("{hookId}")
     public void doDelete(@PathParam("hookId") String hookId) {
         ZapierService zapierService = Framework.getService(ZapierService.class);
-        zapierService.remove(HOOK_CACHE_ID, hookId);
-    }
-
-    // TODO
-    @PUT
-    @Path("{hookId}")
-    public void doPut(@PathParam("hookId") String hookId, WebHook hook) throws IOException {
-        hook.setZapId(hookId);
-        doPost(hook);
+        String username = ctx.getPrincipal().getName();
+        List<WebHook> webHooks = zapierService.fetch(HOOK_CACHE_ID, username);
+        zapierService.store(HOOK_CACHE_ID, username,
+                webHooks.stream().filter(hook -> !hook.getZapId().equals(hookId)).collect(Collectors.toList()));
     }
 
     @POST

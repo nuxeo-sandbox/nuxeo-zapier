@@ -9,6 +9,7 @@
 const oauth = require('./auth/oauth');
 const AutomationOperation = require('./creates/automationOperation');
 const WebHook = require('./triggers/WebHook');
+const WebHookFile = require('./triggers/WebHookFile');
 const DocumentCreation = require('./creates/documentCreation');
 const DocumentUpdate = require('./creates/documentUpdate');
 const DocumentAttach = require('./creates/documentAttach');
@@ -48,6 +49,7 @@ const App = {
 
   triggers: {
     [WebHook.key]: WebHook,
+    [WebHookFile.key]: WebHookFile,
   },
 
   searches: {},

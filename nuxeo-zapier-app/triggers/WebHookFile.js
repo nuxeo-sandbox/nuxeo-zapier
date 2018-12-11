@@ -9,8 +9,8 @@
 const subscribeHook = (z, bundle) => {
   const data = {
     url: bundle.targetUrl,
-    resolver: bundle.inputData.resolver,
-    requiredFields: getRequiredFields(bundle.inputData),
+    resolver: 'documentCreated',
+    requiredFields: bundle.inputData.docTypes,
   };
   const options = {
     url: `${bundle.authData.url}/nuxeo/site/hook`,
@@ -19,11 +19,6 @@ const subscribeHook = (z, bundle) => {
   };
   return z.request(options)
     .then((response) => JSON.parse(response.content));
-};
-
-const getRequiredFields = (inputData) => {
-  delete inputData.resolver;
-  return inputData;
 };
 
 const unsubscribeHook = (z, bundle) => {
@@ -50,72 +45,38 @@ const triggerNotificationWebHook = (z, bundle) => {
   });
 };
 
-const fetchResolver = (z, operationId, bundle) => {
-  return z.request(getRequest(bundle, operationId)).then((response) => {
-    return JSON.parse(response.content).requiredFields;
-  });
-};
-
-const getRequest = (bundle, notificationId) => {
-  return {
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    url: `${bundle.authData.url}/nuxeo/api/v1/notification/resolver/${notificationId}`,
-    params: {},
-  }
-}
-
 module.exports = {
-  key: 'webHook',
-  noun: 'Notifications WebHook',
+  key: 'webHookFileCreated',
+  noun: 'Notifications File Creation',
 
   display: {
-    label: 'Get Nuxeo Notifications',
-    description: 'Get Nuxeo Notifications',
+    label: 'Get Nuxeo Document Creations',
+    description: 'Getting all notifications on document creations in Nuxeo for given type(s)',
   },
 
   operation: {
     type: 'hook',
 
     inputFields: [
-      // Resolver
       function (z, bundle) {
         const request = {
-          url: `${bundle.authData.url}/nuxeo/api/v1/notification/resolver`,
+          url: `${bundle.authData.url}/nuxeo/api/v1/config/types`,
           params: {},
         };
         return z.request(request).then((response) => {
-          const resolvers = JSON.parse(response.content).entries;
-          let result = {};
-          result.key = 'resolver';
-          result.helpText = 'Choose resolvers';
-          result.choices = {};
-          result.required = true;
-          result.altersDynamicFields = true;
-          resolvers.forEach((resolver) => {
-            result.choices[resolver.id] = resolver.id;
+          const types = JSON.parse(response.content).doctypes;
+          let entries = {};
+          entries.key = 'docTypes';
+          entries.label = 'Document Types';
+          entries.helpText = 'Choose the document types to filter on';
+          entries.choices = {};
+          entries.list = true;
+          entries.default = 'File';
+          Object.keys(types).forEach((key) => {
+            entries.choices[key] = key;
           });
-          return result;
+          return entries;
         });
-      },
-      // Resolver required fields
-      function (z, bundle) {
-        const resolverId = bundle.inputData.resolver;
-        if (resolverId) {
-          return fetchResolver(z, resolverId, bundle).then((requiredFields) => {
-            let results = [];
-            requiredFields.forEach((requiredField) => {
-              let result = {};
-              result.key = requiredField;
-              result.label = requiredField;
-              result.required = true;
-              results.push(result);
-            });
-            return results;
-          });
-        }
-        return [];
       },
     ],
 

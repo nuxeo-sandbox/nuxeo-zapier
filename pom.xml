@@ -46,8 +46,8 @@
       </snapshots>
     </repository>
     <repository>
-      <id>private-snapshots</id>
-      <url>https://mavenpriv.nuxeo.com/nexus/content/groups/private-snapshots/</url>
+      <id>public-snapshots</id>
+      <url>http://maven.nuxeo.com/nexus/content/repositories/public-snapshots</url>
       <releases>
         <enabled>false</enabled>
       </releases>

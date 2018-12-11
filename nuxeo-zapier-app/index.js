@@ -8,7 +8,7 @@
  */
 const oauth = require('./auth/oauth');
 const AutomationOperation = require('./creates/automationOperation');
-const AuditHook = require('./triggers/AuditHook');
+const WebHook = require('./triggers/WebHook');
 const DocumentCreation = require('./creates/documentCreation');
 const DocumentUpdate = require('./creates/documentUpdate');
 const DocumentAttach = require('./creates/documentAttach');
@@ -47,7 +47,7 @@ const App = {
   resources: {},
 
   triggers: {
-    [AuditHook.key]: AuditHook,
+    [WebHook.key]: WebHook,
   },
 
   searches: {},

@@ -16,12 +16,14 @@
  */
 package org.nuxeo.zapier.webhook;
 
-import java.awt.*;
+import static org.nuxeo.zapier.Constants.HOOK_CACHE_ID;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -33,19 +35,16 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import org.apache.juli.logging.Log;
-import org.apache.juli.logging.LogFactory;
 import org.nuxeo.ecm.core.api.Blob;
 import org.nuxeo.ecm.core.api.Blobs;
+import org.nuxeo.ecm.notification.NotificationService;
+import org.nuxeo.ecm.notification.resolver.Resolver;
 import org.nuxeo.ecm.webengine.model.WebObject;
 import org.nuxeo.ecm.webengine.model.impl.ModuleRoot;
 import org.nuxeo.runtime.api.Framework;
-import org.nuxeo.zapier.service.CacheService;
-
-import com.sun.jersey.api.NotFoundException;
 import org.nuxeo.zapier.service.ZapierService;
 
-import static org.nuxeo.zapier.Constants.HOOK_CACHE_ID;
+import com.sun.jersey.api.NotFoundException;
 
 /**
  * @since 0.1
@@ -53,31 +52,24 @@ import static org.nuxeo.zapier.Constants.HOOK_CACHE_ID;
 @Path("/hook")
 @WebObject(type = "hook")
 @Produces(MediaType.APPLICATION_JSON)
-public class HookObject extends ModuleRoot {
-
-    private static final Log log = LogFactory.getLog(HookObject.class);
-
-    @GET
-    public List<Hook> doGetAll() {
-        CacheService cacheService = Framework.getService(CacheService.class);
-        // FIXME: how can we get all values without ids?
-        return (List<Hook>) cacheService.getAll(HOOK_CACHE_ID, null);
-    }
+public class WebHookObject extends ModuleRoot {
 
     @GET
     @Path("{hookId}")
     public Blob doGet(@PathParam("hookId") String hookId) throws IOException {
-        CacheService cacheService = Framework.getService(CacheService.class);
-        Hook hook = (Hook) cacheService.get(HOOK_CACHE_ID, hookId, Hook.class);
+        ZapierService zapierService = Framework.getService(ZapierService.class);
+        List<WebHook> webhooks = zapierService.fetch(HOOK_CACHE_ID, ctx.getPrincipal().getName());
+        Optional<WebHook> webHook = webhooks.stream()
+                                            .filter((webhook) -> webhook.getZapId().equals(hookId))
+                                            .findFirst();
         Map<String, String> idJson = new HashMap<>();
-        idJson.put("id", hook.getEvents().toString());
-        idJson.put("event", hook.getEvents().toString());
-        idJson.put("target_url", hook.getTargetUrl());
+        idJson.put("id", hookId);
+        idJson.put("target_url", webHook.get().getTargetUrl());
         return Blobs.createJSONBlobFromValue(idJson);
     }
 
     @GET
-    @Path("/auditexample")
+    @Path("/example")
     public Blob getExample() throws IOException {
         List<Map<String, String>> jsonArray = new ArrayList<>();
         Map<String, String> idJson = new HashMap<>();
@@ -98,37 +90,41 @@ public class HookObject extends ModuleRoot {
     }
 
     @GET
-    @Path("/events")
-    public Blob getEvents() throws IOException {
-        List<String> jsonArray = new ArrayList<>();
-        jsonArray.add("documentCreated");
-        jsonArray.add("documentModified");
-        jsonArray.add("documentTrashed");
-        jsonArray.add("documentMoved");
-        jsonArray.add("lifecycle_transition_event");
-        return Blobs.createJSONBlobFromValue(jsonArray);
+    @Path("/resolvers")
+    public List<Resolver> getResolvers() throws IOException {
+        NotificationService notificationService = Framework.getService(NotificationService.class);
+        List<Resolver> resolvers = new ArrayList<>(notificationService.getResolvers());
+        return resolvers;
     }
 
     @DELETE
     @Path("{hookId}")
     public void doDelete(@PathParam("hookId") String hookId) {
-        CacheService cacheService = Framework.getService(CacheService.class);
-        cacheService.invalidate(HOOK_CACHE_ID, hookId);
+        ZapierService zapierService = Framework.getService(ZapierService.class);
+        zapierService.remove(HOOK_CACHE_ID, hookId);
     }
 
+    // TODO
     @PUT
     @Path("{hookId}")
-    public void doPut(@PathParam("hookId") String hookId, Hook hook) {
-        CacheService cacheService = Framework.getService(CacheService.class);
-        cacheService.push(HOOK_CACHE_ID, hookId, hook);
+    public void doPut(@PathParam("hookId") String hookId, WebHook hook) throws IOException {
+        hook.setZapId(hookId);
+        doPost(hook);
     }
 
     @POST
-    public Blob doPost(Hook hook) throws IOException {
+    public Blob doPost(WebHook webhook) throws IOException {
         Map<String, String> idJson = new HashMap<>();
-        idJson.put("id", hook.getEvents().toString());
+        String url = webhook.getTargetUrl();
+        // Set the webhook Id (zap Id) - return to Zapier 'username-zapId'
+        String[] segments = url.split("/");
+        String zapId = segments[segments.length - 1];
+        String webHookId = String.format("%s-%s", ctx.getPrincipal().getName(), zapId);
+        idJson.put("id", webHookId);
+        webhook.setZapId(zapId);
         ZapierService zapierService = Framework.getService(ZapierService.class);
-        zapierService.registerHook(hook, ctx);
+        String username = ctx.getUserSession().getPrincipal().getName();
+        zapierService.subscribe(webhook, username);
         return Blobs.createJSONBlobFromValue(idJson);
     }
 

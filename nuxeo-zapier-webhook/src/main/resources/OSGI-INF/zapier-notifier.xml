@@ -1,6 +1,11 @@
 <?xml version="1.0"?>
 <component name="org.nuxeo.zapier.notifier">
   <extension target="org.nuxeo.ecm.notification.NotificationComponent" point="notifier">
-    <notifier id="zapier" class="org.nuxeo.zapier.webhook.WebHookNotifier"/>
+    <notifier id="zapier" class="org.nuxeo.zapier.notifier.WebHookNotifier"/>
+  </extension>
+  <extension target="org.nuxeo.ecm.notification.NotificationComponent" point="settings">
+    <settings id="zapierEvent">
+      <notifier name="zapier" default="true"/>
+    </settings>
   </extension>
 </component>

@@ -42,4 +42,6 @@ public class Constants {
     public static final String OAUTH_2_CLIENTS_DIRECTORY = "oauth2Clients";
 
     public static final String HOOK_CACHE_ID = "zapier-hook-cache";
+
+    public static final String ZAPIER = "zapier";
 }

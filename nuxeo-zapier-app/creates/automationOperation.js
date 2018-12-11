@@ -105,8 +105,8 @@ const getRequest = (bundle, operationId = '') => {
   return {
     headers: {
       'Content-Type': 'application/json',
-    },//${bundle.authData.url}
-    url: `http://zapier.apps.prod.nuxeo.io/nuxeo/site/automation/${operationId}`,
+    },
+    url: `${bundle.authData.url}/nuxeo/site/automation/${operationId}`,
     params: {},
   }
 }

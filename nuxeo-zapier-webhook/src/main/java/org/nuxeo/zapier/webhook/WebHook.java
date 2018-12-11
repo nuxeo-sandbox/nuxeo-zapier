@@ -17,23 +17,24 @@
 package org.nuxeo.zapier.webhook;
 
 import java.io.Serializable;
-import java.util.List;
+import java.util.Map;
 
 /**
  * @since 0.1
  */
-public class Hook implements Serializable {
+public class WebHook implements Serializable {
+
+    protected String zapId;
 
     protected String targetUrl;
 
-    protected List<String> events;
+    protected String resolverId;
 
-    protected List<String> docTypes;
+    protected Map<String, String> requiredFields;
 
     protected String entity;
 
-    public Hook() {
-
+    public WebHook() {
     }
 
     public String getEntity() {
@@ -52,19 +53,28 @@ public class Hook implements Serializable {
         this.targetUrl = targetUrl;
     }
 
-    public List<String> getEvents() {
-        return events;
+    public String getZapId() {
+        return zapId;
     }
 
-    public void setEvents(List<String> events) {
-        this.events = events;
+    public void setZapId(String zapId) {
+        this.zapId = zapId;
     }
 
-    public List<String> getDocTypes() {
-        return docTypes;
+    public Map<String, String> getRequiredFields() {
+        return requiredFields;
     }
 
-    public void setDocTypes(List<String> docTypes) {
-        this.docTypes = docTypes;
+    public void setRequiredFields(Map<String, String> requiredFields) {
+        this.requiredFields = requiredFields;
     }
+
+    public String getResolverId() {
+        return resolverId;
+    }
+
+    public void setResolverId(String resolverId) {
+        this.resolverId = resolverId;
+    }
+
 }

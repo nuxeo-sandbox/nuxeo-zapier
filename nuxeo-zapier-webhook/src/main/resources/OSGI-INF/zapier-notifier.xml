@@ -1,14 +1,14 @@
 <?xml version="1.0"?>
 <component name="org.nuxeo.zapier.notifier">
   <extension target="org.nuxeo.ecm.notification.NotificationComponent" point="resolver">
-    <notifier id="documentCreated" class="org.nuxeo.zapier.resolver.DocumentCreatedResolver"/>
+    <resolver id="documentCreated" class="org.nuxeo.zapier.resolver.DocumentCreatedResolver" />
   </extension>
   <extension target="org.nuxeo.ecm.notification.NotificationComponent" point="notifier">
-    <notifier id="zapier" class="org.nuxeo.zapier.notifier.WebHookNotifier"/>
+    <notifier id="zapier" class="org.nuxeo.zapier.notifier.WebHookNotifier" />
   </extension>
   <extension target="org.nuxeo.ecm.notification.NotificationComponent" point="settings">
     <settings id="zapierEvent">
-      <notifier name="zapier" default="true"/>
+      <notifier name="zapier" default="true" />
     </settings>
   </extension>
 </component>

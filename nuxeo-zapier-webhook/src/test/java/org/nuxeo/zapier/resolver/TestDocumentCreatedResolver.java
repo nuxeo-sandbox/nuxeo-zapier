@@ -19,7 +19,7 @@
 package org.nuxeo.zapier.resolver;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.nuxeo.zapier.resolver.DocumentCreatedResolver.DOCUMENT_TYPE;
+import static org.nuxeo.zapier.resolver.DocumentCreatedResolver.DOCUMENT_TYPES;
 
 import javax.inject.Inject;
 
@@ -66,7 +66,7 @@ public class TestDocumentCreatedResolver {
         waitAllAsync();
         assertThat(CounterNotifier.processed).isEqualTo(0);
 
-        nsc.doSubscribe("dummy", "documentCreated", ImmutableMap.of(DOCUMENT_TYPE, "File"));
+        nsc.doSubscribe("dummy", "documentCreated", ImmutableMap.of(DOCUMENT_TYPES, "File"));
 
         doc = session.createDocumentModel("/", "another", "File");
         session.createDocument(doc);
@@ -85,7 +85,7 @@ public class TestDocumentCreatedResolver {
         waitAllAsync();
         assertThat(CounterNotifier.processed).isEqualTo(0);
 
-        nsc.doSubscribe("dummy", "documentCreated", ImmutableMap.of(DOCUMENT_TYPE, "File,Folder"));
+        nsc.doSubscribe("dummy", "documentCreated", ImmutableMap.of(DOCUMENT_TYPES, "File,Folder"));
 
         doc = session.createDocumentModel("/", "another", "File");
         session.createDocument(doc);

@@ -31,11 +31,11 @@ import org.nuxeo.ecm.notification.message.EventRecord;
 import org.nuxeo.ecm.notification.resolver.SubscribableResolver;
 
 public class DocumentCreatedResolver extends SubscribableResolver {
-    protected static final String DOCUMENT_TYPE = "documentType";
+    protected static final String DOCUMENT_TYPES = "documentTypes";
 
     @Override
     public List<String> getRequiredContextFields() {
-        return Arrays.asList();
+        return Collections.singletonList(DOCUMENT_TYPES);
     }
 
     @Override
@@ -45,7 +45,7 @@ public class DocumentCreatedResolver extends SubscribableResolver {
 
     @Override
     public Map<String, String> buildNotifierContext(EventRecord eventRecord) {
-        return Collections.singletonMap(DOCUMENT_TYPE, eventRecord.getDocumentSourceType());
+        return Collections.singletonMap(DOCUMENT_TYPES, eventRecord.getDocumentSourceType());
     }
 
     @Override
@@ -59,9 +59,9 @@ public class DocumentCreatedResolver extends SubscribableResolver {
     }
 
     protected void perDocumentType(Map<String, String> ctx, Consumer<Map<String, String>> cons) {
-        Arrays.stream(ctx.getOrDefault(DOCUMENT_TYPE, "").split(",")).map(String::trim).forEach(s -> {
+        Arrays.stream(ctx.getOrDefault(DOCUMENT_TYPES, "").split(",")).map(String::trim).forEach(s -> {
             Map<String, String> newCtx = new HashMap<>(ctx);
-            newCtx.put(DOCUMENT_TYPE, s);
+            newCtx.put(DOCUMENT_TYPES, s);
             cons.accept(newCtx);
         });
     }

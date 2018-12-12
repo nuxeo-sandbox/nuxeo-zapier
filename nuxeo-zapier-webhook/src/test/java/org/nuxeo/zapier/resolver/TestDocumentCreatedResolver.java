@@ -75,6 +75,29 @@ public class TestDocumentCreatedResolver {
         assertThat(CounterNotifier.processed).isEqualTo(1);
     }
 
+    @Test
+    public void testMultipleTypeRegistration() {
+        assertThat(CounterNotifier.processed).isEqualTo(0);
+
+        DocumentModel doc = session.createDocumentModel("/", "foo", "File");
+        session.createDocument(doc);
+
+        waitAllAsync();
+        assertThat(CounterNotifier.processed).isEqualTo(0);
+
+        nsc.doSubscribe("dummy", "documentCreated", ImmutableMap.of(DOCUMENT_TYPE, "File,Folder"));
+
+        doc = session.createDocumentModel("/", "another", "File");
+        session.createDocument(doc);
+        waitAllAsync();
+
+        doc = session.createDocumentModel("/", "aFolder", "Folder");
+        session.createDocument(doc);
+        waitAllAsync();
+
+        assertThat(CounterNotifier.processed).isEqualTo(2);
+    }
+
     protected void waitAllAsync() {
         session.save();
 

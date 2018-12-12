@@ -22,8 +22,10 @@ import static org.nuxeo.ecm.core.api.event.DocumentEventTypes.DOCUMENT_CREATED;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import org.nuxeo.ecm.notification.message.EventRecord;
 import org.nuxeo.ecm.notification.resolver.SubscribableResolver;
@@ -44,5 +46,23 @@ public class DocumentCreatedResolver extends SubscribableResolver {
     @Override
     public Map<String, String> buildNotifierContext(EventRecord eventRecord) {
         return Collections.singletonMap(DOCUMENT_TYPE, eventRecord.getDocumentSourceType());
+    }
+
+    @Override
+    public void subscribe(String username, Map<String, String> ctx) {
+        perDocumentType(ctx, newCtx -> super.subscribe(username, newCtx));
+    }
+
+    @Override
+    public void unsubscribe(String username, Map<String, String> ctx) {
+        perDocumentType(ctx, newCtx -> super.unsubscribe(username, newCtx));
+    }
+
+    protected void perDocumentType(Map<String, String> ctx, Consumer<Map<String, String>> cons) {
+        Arrays.stream(ctx.getOrDefault(DOCUMENT_TYPE, "").split(",")).map(String::trim).forEach(s -> {
+            Map<String, String> newCtx = new HashMap<>(ctx);
+            newCtx.put(DOCUMENT_TYPE, s);
+            cons.accept(newCtx);
+        });
     }
 }

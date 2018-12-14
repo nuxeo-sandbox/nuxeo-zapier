@@ -128,14 +128,17 @@ module.exports = {
         if (resolverId) {
           return fetchResolver(z, resolverId, bundle).then((requiredFields) => {
             let results = [];
-            requiredFields.forEach((requiredField) => {
-              let result = {};
-              result.key = requiredField;
-              result.label = requiredField;
-              result.required = true;
-              results.push(result);
-            });
-            return results;
+            if (requiredFields) {
+              requiredFields.forEach((requiredField) => {
+                let result = {};
+                result.key = requiredField;
+                result.label = requiredField;
+                result.required = true;
+                results.push(result);
+              });
+              return results;
+            }
+            return [];
           });
         }
         return [];

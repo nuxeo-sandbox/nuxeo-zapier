@@ -16,23 +16,21 @@
  */
 package org.nuxeo.zapier.service;
 
+import static org.nuxeo.runtime.stream.StreamServiceImpl.DEFAULT_CODEC;
 import static org.nuxeo.zapier.Constants.HOOK_CACHE_ID;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutput;
-import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 import javax.ws.rs.core.MediaType;
 
-import org.apache.logging.log4j.util.Strings;
+import org.apache.commons.lang3.StringUtils;
 import org.nuxeo.ecm.core.api.Blobs;
 import org.nuxeo.ecm.core.api.CloseableCoreSession;
 import org.nuxeo.ecm.core.api.CoreInstance;
@@ -46,11 +44,12 @@ import org.nuxeo.ecm.directory.api.DirectoryService;
 import org.nuxeo.ecm.notification.NotificationService;
 import org.nuxeo.ecm.notification.message.Notification;
 import org.nuxeo.ecm.platform.ec.notification.service.NotificationServiceHelper;
-import org.nuxeo.ecm.platform.types.adapter.TypeInfo;
 import org.nuxeo.ecm.platform.url.DocumentViewImpl;
 import org.nuxeo.ecm.platform.url.api.DocumentView;
 import org.nuxeo.ecm.platform.url.api.DocumentViewCodecManager;
+import org.nuxeo.lib.stream.codec.Codec;
 import org.nuxeo.runtime.api.Framework;
+import org.nuxeo.runtime.codec.CodecService;
 import org.nuxeo.runtime.kv.KeyValueService;
 import org.nuxeo.runtime.kv.KeyValueStore;
 import org.nuxeo.runtime.model.ComponentContext;
@@ -58,12 +57,14 @@ import org.nuxeo.runtime.model.DefaultComponent;
 import org.nuxeo.runtime.transaction.TransactionHelper;
 import org.nuxeo.zapier.Constants;
 import org.nuxeo.zapier.webhook.WebHook;
+import org.nuxeo.zapier.webhook.WebHooks;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableMap;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
+import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
 
@@ -99,27 +100,18 @@ public class ZapierComponent extends DefaultComponent implements ZapierService {
     @Override
     public void subscribe(WebHook webhook, String username) {
         // Store the webhook
-        List<WebHook> webhooks = fetch(HOOK_CACHE_ID, username);
-        webhooks.add(webhook);
-        store(HOOK_CACHE_ID, username, webhooks);
-        NotificationService notificationService = Framework.getService(NotificationService.class);
+        storeWebHook(username, webhook);
         // subscribe the principal
+        NotificationService notificationService = Framework.getService(NotificationService.class);
         notificationService.subscribe(username, webhook.getResolverId(), webhook.getRequiredFields());
     }
 
     @Override
-    public void unsubscribe(WebHook hook, String username) {
-
-    }
-
-    @Override
-    public void unsubscribeAll(String username) {
-        // Remove webhooks
-        remove(HOOK_CACHE_ID, username);
-        NotificationService notificationService = Framework.getService(NotificationService.class);
-        // unsubscribe the principal
-        notificationService.getResolvers().forEach((resolver) -> {
-            notificationService.unsubscribe(username, resolver.getId(), new HashMap<>());
+    public void unsubscribe(String username, String hookId) {
+        Optional<WebHook> webHook = removeWebHook(username, hookId);
+        webHook.ifPresent(hook -> {
+            NotificationService notificationService = Framework.getService(NotificationService.class);
+            notificationService.unsubscribe(username, hook.getResolverId(), hook.getRequiredFields());
         });
     }
 
@@ -127,9 +119,9 @@ public class ZapierComponent extends DefaultComponent implements ZapierService {
     public void postNotification(Notification notification) {
         String username = notification.getUsername();
         Map<String, String> context = notification.getContext();
-        String repositoryName = notification.getSourceRepository();
         TransactionHelper.runInTransaction(() -> {
-            try (CloseableCoreSession systemSession = CoreInstance.openCoreSessionSystem(repositoryName)) {
+            try (CloseableCoreSession systemSession = CoreInstance.openCoreSessionSystem(
+                    notification.getSourceRepository())) {
                 DocumentModel document = systemSession.getDocument(new IdRef(notification.getSourceId()));
                 CoreInstance.doPrivileged(systemSession, s -> {
                     // Posting notification(s) to Zapier
@@ -137,58 +129,84 @@ public class ZapierComponent extends DefaultComponent implements ZapierService {
                     Client client = Client.create(config);
                     List<Map<String, String>> jsonArray = new ArrayList<>();
                     Map<String, String> idJson = new HashMap<>();
-                    idJson.put("id", username);
-                    idJson.put("docUrl", getURL(document));
-                    idJson.put("message", context.get("message"));
+                    idJson.put("id", notification.getSourceId());
+                    idJson.put("url", getURL(notification));
+                    idJson.put("originatingEvent", context.get("originatingEvent"));
+                    idJson.put("originatingUser", context.get("originatingUser"));
+                    idJson.put("repositoryId", notification.getSourceRepository());
+                    // TODO doctype, docstate, path?
                     jsonArray.add(idJson);
 
-                    // Simplify with https://zapier.com/help/webhooks/#triggering-multiple-webhooks-at-once
-                    fetch(HOOK_CACHE_ID, username).stream()
-                                                  .filter(hook -> hook.getResolverId()
-                                                                      .equals(notification.getResolverId()))
-                                                  .map(hook -> client.resource(hook.getTargetUrl()))
-                                                  .forEach(res -> {
-                                                      try {
-                                                          res.type(MediaType.APPLICATION_JSON_TYPE).post(
-                                                                  ClientResponse.class,
-                                                                  Blobs.createJSONBlobFromValue(jsonArray).getString());
-                                                      } catch (IOException e) {
-                                                          throw new NuxeoException(e);
-                                                      }
-                                                  });
+                    // Compute url with all existing webhooks for the given resolver
+                    List<WebHook> webHooks = fetchWebHooks(username).stream()
+                                                                    .filter(webHook -> webHook.getResolverId().equals(
+                                                                            notification.getResolverId()))
+                                                                    .collect(Collectors.toList());
+                    List<String> ids = webHooks.stream().map((WebHook::getId)).collect(Collectors.toList());
+                    String lastSegment = StringUtils.join(ids, ",");
+                    String example = webHooks.get(0).getTargetUrl();
+                    if (example.endsWith("/"))
+                        example = example.substring(0, example.length() - 2);
+                    String url = example.substring(0, example.lastIndexOf("/"));
+                    WebResource resource = client.resource(String.format("%s/%s", url, lastSegment));
+                    try {
+                        ClientResponse response = resource.type(MediaType.APPLICATION_JSON_TYPE).post(
+                                ClientResponse.class, Blobs.createJSONBlobFromValue(jsonArray).getString());
+                        if (response.getStatus() != ClientResponse.Status.ACCEPTED.getStatusCode()) {
+                            throw new NuxeoException("Zapier errors with status %s. Check your Zapier account.",
+                                    response.getStatus());
+                        }
+                    } catch (IOException e) {
+                        throw new NuxeoException(e);
+                    }
                 });
             }
+
         });
     }
 
     @Override
-    public void store(String cacheName, String entryId, List<WebHook> input) {
-        KeyValueStore store = keyValueService.getKeyValueStore(cacheName);
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        try (ObjectOutput entry = new ObjectOutputStream(bos)) {
-            entry.writeObject(input);
-            entry.flush();
-            byte[] bytes = bos.toByteArray();
-            store.put(entryId, bytes, ttl);
-        } catch (IOException e) {
-            throw new NuxeoException(e);
-        }
+    public void storeWebHooks(String entryId, List<WebHook> webHookList) {
+        WebHooks webHooks = new WebHooks();
+        webHooks.setWebHookList(webHookList);
+        getKVS().put(entryId, getAvroCodec().encode(webHooks), ttl);
     }
 
     @Override
-    public List<WebHook> fetch(String cacheName, String entryId) {
-        KeyValueStore store = keyValueService.getKeyValueStore(cacheName);
-        byte[] entry = store.get(entryId);
+    public void storeWebHook(String entryId, WebHook webHook) {
+        List<WebHook> webHooksList = fetchWebHooks(entryId);
+        webHooksList.add(webHook);
+        WebHooks webHooks = new WebHooks();
+        webHooks.setWebHookList(webHooksList);
+        getKVS().put(entryId, getAvroCodec().encode(webHooks), ttl);
+    }
+
+    @Override
+    public List<WebHook> fetchWebHooks(String entryId) {
+        byte[] entry = getKVS().get(entryId);
         if (entry == null)
             return new ArrayList<>();
-        ByteArrayInputStream bis = new ByteArrayInputStream(entry);
-        return extractResult(bis);
+        return getAvroCodec().decode(entry).getWebHookList();
     }
 
     @Override
-    public void remove(String cacheName, String entryId) {
-        KeyValueStore store = keyValueService.getKeyValueStore(cacheName);
-        store.put(entryId, (String) null);
+    public WebHook fetchWebHook(String entryId, String zapId) {
+        List<WebHook> webHooks = fetchWebHooks(entryId);
+        Optional<WebHook> webHook = webHooks.stream().filter((hook) -> hook.getId().equals(zapId)).findAny();
+        return webHook.get();
+    }
+
+    @Override
+    public Optional<WebHook> removeWebHook(String entryId, String webHookId) {
+        List<WebHook> webHooks = fetchWebHooks(entryId);
+        Optional<WebHook> webHook = webHooks.stream().filter((hook) -> hook.getId().equals(webHookId)).findAny();
+        webHook.ifPresent(webHooks::remove);
+        storeWebHooks(entryId, webHooks);
+        return webHook;
+    }
+
+    protected KeyValueStore getKVS() {
+        return Framework.getService(KeyValueService.class).getKeyValueStore(HOOK_CACHE_ID);
     }
 
     @Override
@@ -198,23 +216,15 @@ public class ZapierComponent extends DefaultComponent implements ZapierService {
         return super.getAdapter(adapter);
     }
 
-    protected List<WebHook> extractResult(ByteArrayInputStream bis) {
-        try (ObjectInputStream in = new ObjectInputStream(bis)) {
-            List<WebHook> result = (List<WebHook>) in.readObject();
-            return result;
-        } catch (IOException | ClassNotFoundException e) {
-            throw new NuxeoException(e);
-        }
+    protected Codec<WebHooks> getAvroCodec() {
+        return Framework.getService(CodecService.class).getCodec(DEFAULT_CODEC, WebHooks.class);
     }
 
-    protected String getURL(DocumentModel document) {
+    protected String getURL(Notification notification) {
         DocumentViewCodecManager viewCodecManager = Framework.getService(DocumentViewCodecManager.class);
-        DocumentLocation docLoc = new DocumentLocationImpl(document);
-        TypeInfo adapter = document.getAdapter(TypeInfo.class);
-        if (adapter == null) {
-            return Strings.EMPTY;
-        }
-        DocumentView docView = new DocumentViewImpl(docLoc, adapter.getDefaultView());
+        DocumentLocation docLoc = new DocumentLocationImpl(notification.getSourceRepository(),
+                notification.getSourceRef());
+        DocumentView docView = new DocumentViewImpl(docLoc);
         return viewCodecManager.getUrlFromDocumentView(docView, true,
                 NotificationServiceHelper.getNotificationService().getServerUrlPrefix());
     }

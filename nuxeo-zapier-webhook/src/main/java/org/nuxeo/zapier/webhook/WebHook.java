@@ -24,7 +24,7 @@ import java.util.Map;
  */
 public class WebHook implements Serializable {
 
-    protected String zapId;
+    protected String id;
 
     protected String targetUrl;
 
@@ -32,17 +32,7 @@ public class WebHook implements Serializable {
 
     protected Map<String, String> requiredFields;
 
-    protected String entity;
-
     public WebHook() {
-    }
-
-    public String getEntity() {
-        return entity;
-    }
-
-    public void setEntity(String entity) {
-        this.entity = entity;
     }
 
     public String getTargetUrl() {
@@ -53,12 +43,12 @@ public class WebHook implements Serializable {
         this.targetUrl = targetUrl;
     }
 
-    public String getZapId() {
-        return zapId;
+    public String getId() {
+        return id;
     }
 
-    public void setZapId(String zapId) {
-        this.zapId = zapId;
+    public void setId(String zapId) {
+        this.id = zapId;
     }
 
     public Map<String, String> getRequiredFields() {

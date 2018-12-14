@@ -16,15 +16,11 @@
  */
 package org.nuxeo.zapier.webhook;
 
-import static org.nuxeo.zapier.Constants.HOOK_CACHE_ID;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -56,13 +52,10 @@ public class WebHookObject extends ModuleRoot {
     @Path("{hookId}")
     public Blob doGet(@PathParam("hookId") String hookId) throws IOException {
         ZapierService zapierService = Framework.getService(ZapierService.class);
-        List<WebHook> webhooks = zapierService.fetch(HOOK_CACHE_ID, ctx.getPrincipal().getName());
-        Optional<WebHook> webHook = webhooks.stream()
-                                            .filter((webhook) -> webhook.getZapId().equals(hookId))
-                                            .findFirst();
+        WebHook webHook = zapierService.fetchWebHook(ctx.getPrincipal().getName(), hookId);
         Map<String, String> idJson = new HashMap<>();
         idJson.put("id", hookId);
-        idJson.put("target_url", webHook.get().getTargetUrl());
+        idJson.put("target_url", webHook.getTargetUrl());
         return Blobs.createJSONBlobFromValue(idJson);
     }
 
@@ -71,45 +64,40 @@ public class WebHookObject extends ModuleRoot {
     public Blob getExample() throws IOException {
         List<Map<String, String>> jsonArray = new ArrayList<>();
         Map<String, String> idJson = new HashMap<>();
-        idJson.put("id", "202");
-        idJson.put("category", "eventDocumentCategory");
-        idJson.put("principalName", "someone");
-        idJson.put("comment", "something");
-        idJson.put("eventId", "documentModified");
-        idJson.put("docLifeCycle", "a state");
-        idJson.put("docPath", "/somewhere");
-        idJson.put("docType", "type");
-        idJson.put("docUUID", "32233fa-23323-fee032");
-        idJson.put("repositoryId", "default");
-        idJson.put("eventDate", "2018-09-06T00:00:00.524Z");
-        idJson.put("extended", "");
+        idJson.put("id", "documentId");
+        idJson.put("url", "documentURL");
+        idJson.put("originatingUser", "byWho");
+        idJson.put("originatingEvent", "documentModified");
+        idJson.put("docLifeCycle", "state");
+        idJson.put("docType", "documentType");
+        idJson.put("repositoryId", "repositoryId");
         jsonArray.add(idJson);
         return Blobs.createJSONBlobFromValue(jsonArray);
     }
 
     @DELETE
     @Path("{hookId}")
-    public void doDelete(@PathParam("hookId") String hookId) {
+    public Response doDelete(@PathParam("hookId") String hookId) {
+        // Unsubscription
         ZapierService zapierService = Framework.getService(ZapierService.class);
-        String username = ctx.getPrincipal().getName();
-        List<WebHook> webHooks = zapierService.fetch(HOOK_CACHE_ID, username);
-        zapierService.store(HOOK_CACHE_ID, username,
-                webHooks.stream().filter(hook -> !hook.getZapId().equals(hookId)).collect(Collectors.toList()));
+        zapierService.unsubscribe(ctx.getPrincipal().getName(), hookId);
+        return Response.ok().build();
     }
 
     @POST
     public Blob doPost(WebHook webhook) throws IOException {
-        Map<String, String> idJson = new HashMap<>();
-        String url = webhook.getTargetUrl();
-        // Set the webhook Id (zap Id) - return to Zapier 'username-zapId'
-        String[] segments = url.split("/");
-        String zapId = segments[segments.length - 1];
-        String webHookId = String.format("%s-%s", ctx.getPrincipal().getName(), zapId);
-        idJson.put("id", webHookId);
-        webhook.setZapId(zapId);
+        // Compute the webHook id (last segment of Zapier URL)
+        String[] segments = webhook.getTargetUrl().split("/");
+        String webHookId = segments[segments.length - 1];
+        webhook.setId(webHookId);
+
+        // Subscription
         ZapierService zapierService = Framework.getService(ZapierService.class);
-        String username = ctx.getUserSession().getPrincipal().getName();
-        zapierService.subscribe(webhook, username);
+        zapierService.subscribe(webhook, ctx.getPrincipal().getName());
+
+        // Return the webHook id to Zapier
+        Map<String, String> idJson = new HashMap<>();
+        idJson.put("id", webHookId);
         return Blobs.createJSONBlobFromValue(idJson);
     }
 

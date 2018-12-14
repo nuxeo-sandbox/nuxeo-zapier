@@ -14,32 +14,26 @@
  * limitations under the License.
  *
  */
-package org.nuxeo.zapier.service;
+package org.nuxeo.zapier.webhook;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-
-import org.nuxeo.ecm.notification.message.Notification;
-import org.nuxeo.zapier.webhook.WebHook;
 
 /**
  * @since 0.1
  */
-public interface ZapierService {
+public class WebHooks {
 
-    void subscribe(WebHook hook, String username);
+    public WebHooks() {
+    }
 
-    void unsubscribe(String username, String hookId);
+    List<WebHook> webHookList = new ArrayList<>();
 
-    void postNotification(Notification notification);
+    public List<WebHook> getWebHookList() {
+        return webHookList;
+    }
 
-    void storeWebHooks(String entryId, List<WebHook> webHookList);
-
-    void storeWebHook(String entryId, WebHook webHook);
-
-    List<WebHook> fetchWebHooks(String entryId);
-
-    WebHook fetchWebHook(String entryId, String zapId);
-
-    Optional<WebHook> removeWebHook(String entryId, String webHookId);
+    public void setWebHookList(List<WebHook> webHookList) {
+        this.webHookList = webHookList;
+    }
 }

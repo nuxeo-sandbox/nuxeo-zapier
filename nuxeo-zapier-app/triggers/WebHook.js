@@ -9,7 +9,7 @@
 const subscribeHook = (z, bundle) => {
   const data = {
     url: bundle.targetUrl,
-    resolver: bundle.inputData.resolver,
+    resolver: bundle.inputData.notification,
     requiredFields: getRequiredFields(bundle.inputData),
   };
   const options = {
@@ -22,7 +22,7 @@ const subscribeHook = (z, bundle) => {
 };
 
 const getRequiredFields = (inputData) => {
-  delete inputData.resolver;
+  delete inputData.notification;
   return inputData;
 };
 
@@ -50,8 +50,14 @@ const triggerNotificationWebHook = (z, bundle) => {
   });
 };
 
-const fetchResolver = (z, operationId, bundle) => {
-  return z.request(getRequest(bundle, operationId)).then((response) => {
+const fetchDescription = (z, resolverId, bundle) => {
+  return z.request(getRequest(bundle, resolverId)).then((response) => {
+    return JSON.parse(response.content).description;
+  });
+};
+
+const fetchResolver = (z, resolverId, bundle) => {
+  return z.request(getRequest(bundle, resolverId)).then((response) => {
     return JSON.parse(response.content).requiredFields;
   });
 };
@@ -72,7 +78,7 @@ module.exports = {
 
   display: {
     label: 'Get Nuxeo Notifications',
-    description: 'Get Nuxeo Notifications',
+    description: 'Choose and get all kind of Nuxeo Notifications',
   },
 
   operation: {
@@ -88,20 +94,37 @@ module.exports = {
         return z.request(request).then((response) => {
           const resolvers = JSON.parse(response.content).entries;
           let result = {};
-          result.key = 'resolver';
-          result.helpText = 'Choose resolvers';
+          result.key = 'notification';
+          result.helpText = 'Choose the notification';
           result.choices = {};
           result.required = true;
           result.altersDynamicFields = true;
           resolvers.forEach((resolver) => {
-            result.choices[resolver.id] = resolver.id;
+            result.choices[resolver.id] = resolver.label;
           });
           return result;
         });
       },
+      // Resolver Description (display only)
+      function (z, bundle) {
+        const resolverId = bundle.inputData.notification;
+        if (resolverId) {
+          return fetchDescription(z, resolverId, bundle).then((description) => {
+            if (description && description !== '') {
+              let result = {};
+              result.key = 'description';
+              result.helpText = description;
+              result.type = 'copy';
+              return [result];
+            }
+            return [];
+          });
+        }
+        return [];
+      },
       // Resolver required fields
       function (z, bundle) {
-        const resolverId = bundle.inputData.resolver;
+        const resolverId = bundle.inputData.notification;
         if (resolverId) {
           return fetchResolver(z, resolverId, bundle).then((requiredFields) => {
             let results = [];
@@ -124,12 +147,5 @@ module.exports = {
 
     perform: getNotifications,
     performList: triggerNotificationWebHook,
-    outputFields: [
-      {key: 'id', label: 'ID'},
-      {key: 'docUUID', label: 'Document UUID'},
-      {key: 'docLifeCycle', label: 'Document State'},
-      {key: 'docPath', label: 'Document Path'},
-      {key: 'principalName', label: 'Who'},
-    ],
   },
 };

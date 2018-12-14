@@ -10,7 +10,7 @@ const subscribeHook = (z, bundle) => {
   const data = {
     url: bundle.targetUrl,
     resolver: 'documentCreated',
-    requiredFields: bundle.inputData.docTypes,
+    requiredFields: getRequiredFields(bundle.inputData.docTypes),
   };
   const options = {
     url: `${bundle.authData.url}/nuxeo/site/hook`,
@@ -19,6 +19,12 @@ const subscribeHook = (z, bundle) => {
   };
   return z.request(options)
     .then((response) => JSON.parse(response.content));
+};
+
+const getRequiredFields = (docTypes) => {
+  return {
+    documentTypes: docTypes.join(),
+  }
 };
 
 const unsubscribeHook = (z, bundle) => {
@@ -85,12 +91,5 @@ module.exports = {
 
     perform: getNotifications,
     performList: triggerNotificationWebHook,
-    outputFields: [
-      {key: 'id', label: 'ID'},
-      {key: 'docUUID', label: 'Document UUID'},
-      {key: 'docLifeCycle', label: 'Document State'},
-      {key: 'docPath', label: 'Document Path'},
-      {key: 'principalName', label: 'Who'},
-    ],
   },
 };

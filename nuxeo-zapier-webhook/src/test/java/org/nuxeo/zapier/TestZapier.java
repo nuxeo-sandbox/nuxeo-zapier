@@ -67,19 +67,18 @@ public class TestZapier {
         WebHook hook = new WebHook();
         hook.setTargetUrl("url");
         hook.setResolverId("fileCreated");
-        hook.setEntity("resolver");
         zapierService.subscribe(hook, "Administrator");
 
         // Assert subscription exists
         notificationService.getSubscriptions("fileCreated", new HashMap<>());
-        List<WebHook> webHooks = zapierService.fetch(HOOK_CACHE_ID, session.getPrincipal().getName());
+//        List<WebHook> webHooks = zapierService.fetch(HOOK_CACHE_ID, session.getPrincipal().getName());
 
         // Unsubscribe a webhook
-        zapierService.unsubscribe(hook, "Administrator");
-
-        // Assert subscription is gone
-        notificationService.getSubscriptions("fileCreated", new HashMap<>());
-        webHooks = zapierService.fetch(HOOK_CACHE_ID, session.getPrincipal().getName());
+//        zapierService.unsubscribe(hook, "Administrator");
+//
+//        // Assert subscription is gone
+//        notificationService.getSubscriptions("fileCreated", new HashMap<>());
+//        webHooks = zapierService.fetch(HOOK_CACHE_ID, session.getPrincipal().getName());
     }
 
     @Test
@@ -88,7 +87,6 @@ public class TestZapier {
         WebHook hook = new WebHook();
         hook.setTargetUrl("url");
         hook.setResolverId("fileCreated");
-        hook.setEntity("resolver");
         zapierService.subscribe(hook, "Administrator");
         EventRecord eventRecord = EventRecord.builder()
                                              .withEventName("test")

@@ -66,10 +66,10 @@ public class WebHookObject extends ModuleRoot {
         Map<String, String> idJson = new HashMap<>();
         idJson.put("id", "documentId");
         idJson.put("url", "documentURL");
+        idJson.put("title", "documentTitle");
         idJson.put("originatingUser", "byWho");
         idJson.put("originatingEvent", "documentModified");
-        idJson.put("docLifeCycle", "state");
-        idJson.put("docType", "documentType");
+        idJson.put("docLifeCycle", "documentState");
         idJson.put("repositoryId", "repositoryId");
         jsonArray.add(idJson);
         return Blobs.createJSONBlobFromValue(jsonArray);

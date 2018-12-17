@@ -21,7 +21,7 @@ package org.nuxeo.zapier;
  */
 public class Constants {
 
-    public static final String NOTIFICATION_CACHE_DEFAULT_TTL = "1800"; // 30 min;
+    public static final String NOTIFICATION_CACHE_DEFAULT_TTL = "0"; // 0 min;
 
     public static final String CLIENT_ID = "clientId";
 

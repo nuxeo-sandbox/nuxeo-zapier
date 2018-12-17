@@ -16,6 +16,8 @@
  */
 package org.nuxeo.zapier.service;
 
+import static java.util.stream.Collectors.joining;
+import static org.apache.commons.lang3.StringUtils.isNotBlank;
 import static org.nuxeo.runtime.stream.StreamServiceImpl.DEFAULT_CODEC;
 import static org.nuxeo.zapier.Constants.HOOK_CACHE_ID;
 
@@ -27,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.ws.rs.core.MediaType;
 
@@ -38,15 +41,18 @@ import org.nuxeo.ecm.core.api.DocumentLocation;
 import org.nuxeo.ecm.core.api.DocumentModel;
 import org.nuxeo.ecm.core.api.IdRef;
 import org.nuxeo.ecm.core.api.NuxeoException;
+import org.nuxeo.ecm.core.api.NuxeoPrincipal;
 import org.nuxeo.ecm.core.api.impl.DocumentLocationImpl;
 import org.nuxeo.ecm.directory.Session;
 import org.nuxeo.ecm.directory.api.DirectoryService;
 import org.nuxeo.ecm.notification.NotificationService;
 import org.nuxeo.ecm.notification.message.Notification;
-import org.nuxeo.ecm.platform.ec.notification.service.NotificationServiceHelper;
+import org.nuxeo.ecm.notification.resolver.Resolver;
+import org.nuxeo.ecm.notification.resolver.SubscribableResolver;
 import org.nuxeo.ecm.platform.url.DocumentViewImpl;
 import org.nuxeo.ecm.platform.url.api.DocumentView;
 import org.nuxeo.ecm.platform.url.api.DocumentViewCodecManager;
+import org.nuxeo.ecm.platform.usermanager.UserManager;
 import org.nuxeo.lib.stream.codec.Codec;
 import org.nuxeo.runtime.api.Framework;
 import org.nuxeo.runtime.codec.CodecService;
@@ -103,7 +109,9 @@ public class ZapierComponent extends DefaultComponent implements ZapierService {
         storeWebHook(username, webhook);
         // subscribe the principal
         NotificationService notificationService = Framework.getService(NotificationService.class);
-        notificationService.subscribe(username, webhook.getResolverId(), webhook.getRequiredFields());
+        Resolver resolver = notificationService.getResolver(webhook.getResolverId());
+        if (resolver instanceof SubscribableResolver)
+            notificationService.subscribe(username, webhook.getResolverId(), webhook.getRequiredFields());
     }
 
     @Override
@@ -111,7 +119,9 @@ public class ZapierComponent extends DefaultComponent implements ZapierService {
         Optional<WebHook> webHook = removeWebHook(username, hookId);
         webHook.ifPresent(hook -> {
             NotificationService notificationService = Framework.getService(NotificationService.class);
-            notificationService.unsubscribe(username, hook.getResolverId(), hook.getRequiredFields());
+            Resolver resolver = notificationService.getResolver(hook.getResolverId());
+            if (resolver instanceof SubscribableResolver)
+                notificationService.unsubscribe(username, hook.getResolverId(), hook.getRequiredFields());
         });
     }
 
@@ -131,10 +141,11 @@ public class ZapierComponent extends DefaultComponent implements ZapierService {
                     Map<String, String> idJson = new HashMap<>();
                     idJson.put("id", notification.getSourceId());
                     idJson.put("url", getURL(notification));
+                    idJson.put("title", document.getTitle());
+                    idJson.put("state", document.getCurrentLifeCycleState());
                     idJson.put("originatingEvent", context.get("originatingEvent"));
-                    idJson.put("originatingUser", context.get("originatingUser"));
+                    idJson.put("originatingUser", getUserName(context.get("originatingUser")));
                     idJson.put("repositoryId", notification.getSourceRepository());
-                    // TODO doctype, docstate, path?
                     jsonArray.add(idJson);
 
                     // Compute url with all existing webhooks for the given resolver
@@ -152,9 +163,10 @@ public class ZapierComponent extends DefaultComponent implements ZapierService {
                     try {
                         ClientResponse response = resource.type(MediaType.APPLICATION_JSON_TYPE).post(
                                 ClientResponse.class, Blobs.createJSONBlobFromValue(jsonArray).getString());
-                        if (response.getStatus() != ClientResponse.Status.ACCEPTED.getStatusCode()) {
-                            throw new NuxeoException("Zapier errors with status %s. Check your Zapier account.",
-                                    response.getStatus());
+                        if (response.getStatus() != ClientResponse.Status.OK.getStatusCode()) {
+                            throw new NuxeoException(String.format(
+                                    "Zapier errors with status %d. Check your Zapier account.\n Request URL: %s\n Resolver Id: %s\n Username: %s",
+                                    response.getStatus(), url, notification.getResolverId(), username));
                         }
                     } catch (IOException e) {
                         throw new NuxeoException(e);
@@ -224,8 +236,24 @@ public class ZapierComponent extends DefaultComponent implements ZapierService {
         DocumentViewCodecManager viewCodecManager = Framework.getService(DocumentViewCodecManager.class);
         DocumentLocation docLoc = new DocumentLocationImpl(notification.getSourceRepository(),
                 notification.getSourceRef());
-        DocumentView docView = new DocumentViewImpl(docLoc);
-        return viewCodecManager.getUrlFromDocumentView(docView, true,
-                NotificationServiceHelper.getNotificationService().getServerUrlPrefix());
+        DocumentView docView = new DocumentViewImpl(docLoc, "view_documents");
+        return viewCodecManager.getUrlFromDocumentView(docView, true, Framework.getProperty("nuxeo.url"));
+    }
+
+    public static String getUserName(String username) {
+        NuxeoPrincipal principal = Framework.getService(UserManager.class).getPrincipal(username);
+        return getUserName(principal);
+    }
+
+    public static String getUserName(NuxeoPrincipal principal) {
+        if (principal == null) {
+            return null;
+        }
+        return getUserName(principal.getFirstName(), principal.getLastName(), principal.getName());
+    }
+
+    public static String getUserName(String firstName, String lastName, String username) {
+        String fullUsername = Stream.of(firstName, lastName).filter(StringUtils::isNotBlank).collect(joining(" "));
+        return isNotBlank(fullUsername) ? fullUsername : username;
     }
 }

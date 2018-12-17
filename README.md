@@ -1,21 +1,37 @@
-# Zapier App for Nuxeo Platform
+# Nuxeo Zapier Integration
 
-This plugin contains:
+This repository contains:
 
-- The Nuxeo platform addon to setup the webhook.
-- The Zapier plugin itself with triggers and actions for Nuxeo Platform.
+- The required Nuxeo platform add-on to make it work with Zapier. (10.10 Nuxeo Platform or higher)
+- The Nuxeo Zapier app with auths, triggers and actions.
 
 ## Zapier Nuxeo Webhook
 
-Here is the future description of the webhook.
+The add-on requires 10.10 Nuxeo Platform or higher.
+
+The add-on once launched is doing a setup of your OAuth 2 Nuxeo provider:
+
+- Zapier will connect through it for authentication
+- You will need to setup the custom secret (go to Admin Center > Cloud Services)
+
+The add-on contains the technical layer to interact with Zapier:
+
+- It subscribes to Nuxeo Notifications and receives commands via Nuxeo Automation operations.
+
+- It installs the required webhook to expose the appropriate REST API for Zapier.
+- A custom resolver and notifier to extend the Nuxeo notification service.
+
+####Custom Notification extensions
+
+In order to add new resolvers to the Nuxeo platform and get them available on Zapier, please follow the [Notification service documentation](WIP).
+
+#### Custom Automation Operations
+
+In order to add new operations to the Nuxeo platform and get them available on Zapier, please follow the [Automation service documentation](https://doc.nuxeo.com/nxdoc/contributing-an-operation/).
 
 ## Zapier App
 
-Here is the future description of the Zapier app features.
-
-### Specifications
-
-https://jira.nuxeo.com/browse/NXP-26022
+The Zapier app has been written to be deployed on the Zapier infrastructure thanks to the [Zapier CLI](https://zapier.com/developer/documentation/v2/getting-started-cli/) and [Zapier Script](https://zapier.com/developer/documentation/v2/scripting/).
 
 ### The structure
 
@@ -25,26 +41,32 @@ https://jira.nuxeo.com/browse/NXP-26022
 │   ├── basic.js
 │   └── oauth.js
 ├── creates - "the actions"
-│   └── task.js - not implemented
+│   └── automationOperation.js - "generic action to use any Nuxeo Automation operations"
+│   └── documentAttach.js - "action to attach binary on a given document"
+│   └── documentCreation.js - "action to create a document in a given location"
+│   └── documentUpdate.js - "action to update a given document"
+│   └── fileImporter.js - "action to import a document in a given location"
+│   └── startWorkflow.js - "action to start a worflow on given document(s)"
 ├── index.js
 ├── package.json
 ├── test
-│   ├── authentication.js
-│   └── project.js
+│   ├── AuditHook.js
+│   └── oauth.js
+|   ....
 └── triggers
-    ├── AuditHook.js - "the audit trigger via hooks"
-    ├── deliverableSet.js - "the deliverable set trigger via polling"
-    ├── event.js - "the static dropdown for choosing events"
-    └── project.js - "the project dropdown for choosing a given project"
+    ├── WebHook.js - "the generic trigger via hook for all Nuxeo notifications/resolvers"
+    ├── WebHookFile.js - "trigger when a document is created"
+```
+
+## Building
+
+```bash
+mvn clean install
 ```
 
 ## Contribute
 
-Here is the future way of contributing to the project.
-
-## Usage
-
-Here is the future way of using the plugin.
+Don't hesitate to post issues/questions/needs and suggest pull requests.
 
 ## License
 

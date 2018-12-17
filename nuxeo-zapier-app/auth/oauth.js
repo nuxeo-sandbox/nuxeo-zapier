@@ -46,12 +46,12 @@ const testAuth = (z, bundle) => {
 };
 
 const refreshAccessToken = (z, bundle) => {
-  const promise = z.request(`${bundle.inputData.url}/oauth/refresh-token`, {
+  const promise = z.request(`${bundle.authData.url}/nuxeo/oauth2/token`, {
     method: 'POST',
-    body: {
+    params: {
       refresh_token: bundle.authData.refresh_token,
-      client_id: process.env.CLIENT_ID,
-      client_secret: process.env.CLIENT_SECRET,
+      client_id: 'nuxeo-zapier',
+      client_secret: bundle.authData.secret,
       grant_type: 'refresh_token'
     },
     headers: {

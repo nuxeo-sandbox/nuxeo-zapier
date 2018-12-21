@@ -42,4 +42,6 @@ public interface ZapierService {
     WebHook fetchWebHook(String entryId, String zapId);
 
     Optional<WebHook> removeWebHook(String entryId, String webHookId);
+
+    void invalidateKVS(String keyId);
 }

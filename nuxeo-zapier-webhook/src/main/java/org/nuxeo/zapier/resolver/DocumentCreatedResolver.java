@@ -19,6 +19,7 @@
 package org.nuxeo.zapier.resolver;
 
 import static org.nuxeo.ecm.core.api.event.DocumentEventTypes.DOCUMENT_CREATED;
+import static org.nuxeo.ecm.notification.message.EventRecord.SOURCE_DOC_TYPE;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -31,11 +32,9 @@ import org.nuxeo.ecm.notification.message.EventRecord;
 import org.nuxeo.ecm.notification.resolver.SubscribableResolver;
 
 public class DocumentCreatedResolver extends SubscribableResolver {
-    protected static final String DOCUMENT_TYPES = "documentTypes";
-
     @Override
     public List<String> getRequiredContextFields() {
-        return Collections.singletonList(DOCUMENT_TYPES);
+        return Collections.singletonList(SOURCE_DOC_TYPE);
     }
 
     @Override
@@ -44,8 +43,8 @@ public class DocumentCreatedResolver extends SubscribableResolver {
     }
 
     @Override
-    public Map<String, String> buildNotifierContext(EventRecord eventRecord) {
-        return Collections.singletonMap(DOCUMENT_TYPES, eventRecord.getDocumentSourceType());
+    public Map<String, String> buildNotifierContext(String targetUsername, EventRecord eventRecord) {
+        return Collections.singletonMap(SOURCE_DOC_TYPE, eventRecord.getDocumentSourceType());
     }
 
     @Override
@@ -58,10 +57,10 @@ public class DocumentCreatedResolver extends SubscribableResolver {
         perDocumentType(ctx, newCtx -> super.unsubscribe(username, newCtx));
     }
 
-    protected void perDocumentType(Map<String, String> ctx, Consumer<Map<String, String>> cons) {
-        Arrays.stream(ctx.getOrDefault(DOCUMENT_TYPES, "").split(",")).map(String::trim).forEach(s -> {
+    private void perDocumentType(Map<String, String> ctx, Consumer<Map<String, String>> cons) {
+        Arrays.stream(ctx.getOrDefault(SOURCE_DOC_TYPE, "").split(",")).map(String::trim).forEach(s -> {
             Map<String, String> newCtx = new HashMap<>(ctx);
-            newCtx.put(DOCUMENT_TYPES, s);
+            newCtx.put(SOURCE_DOC_TYPE, s);
             cons.accept(newCtx);
         });
     }

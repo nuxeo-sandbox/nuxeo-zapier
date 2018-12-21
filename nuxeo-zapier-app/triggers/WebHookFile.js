@@ -24,7 +24,7 @@ const subscribeHook = (z, bundle) => {
 
 const getRequiredFields = (docTypes) => {
   return {
-    documentTypes: docTypes.join(),
+    sourceType: docTypes.join(),
   }
 };
 

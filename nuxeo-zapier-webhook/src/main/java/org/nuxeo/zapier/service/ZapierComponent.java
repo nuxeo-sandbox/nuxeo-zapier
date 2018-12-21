@@ -43,6 +43,7 @@ import org.nuxeo.ecm.core.api.IdRef;
 import org.nuxeo.ecm.core.api.NuxeoException;
 import org.nuxeo.ecm.core.api.NuxeoPrincipal;
 import org.nuxeo.ecm.core.api.impl.DocumentLocationImpl;
+import org.nuxeo.ecm.core.io.download.DownloadService;
 import org.nuxeo.ecm.directory.Session;
 import org.nuxeo.ecm.directory.api.DirectoryService;
 import org.nuxeo.ecm.notification.NotificationService;
@@ -69,6 +70,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableMap;
 import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.ClientHandlerException;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.config.ClientConfig;
@@ -80,8 +82,6 @@ import com.sun.jersey.api.client.config.DefaultClientConfig;
 public class ZapierComponent extends DefaultComponent implements ZapierService {
 
     private static final Logger log = LoggerFactory.getLogger(ZapierComponent.class);
-
-    protected KeyValueService keyValueService;
 
     protected long ttl;
 
@@ -134,6 +134,9 @@ public class ZapierComponent extends DefaultComponent implements ZapierService {
                     notification.getSourceRepository())) {
                 DocumentModel document = systemSession.getDocument(new IdRef(notification.getSourceId()));
                 CoreInstance.doPrivileged(systemSession, s -> {
+                    // No notification for proxies/versions
+                    if (document.isProxy() || document.isVersion())
+                        return;
                     // Posting notification(s) to Zapier
                     ClientConfig config = new DefaultClientConfig();
                     Client client = Client.create(config);
@@ -154,30 +157,61 @@ public class ZapierComponent extends DefaultComponent implements ZapierService {
                                                                     .filter(webHook -> webHook.getResolverId().equals(
                                                                             notification.getResolverId()))
                                                                     .collect(Collectors.toList());
-                    List<String> ids = webHooks.stream().map((WebHook::getId)).collect(Collectors.toList());
-                    String lastSegment = StringUtils.join(ids, ",");
-                    String example = webHooks.get(0).getTargetUrl();
-                    if (example.endsWith("/"))
-                        example = example.substring(0, example.length() - 2);
-                    String url = example.substring(0, example.lastIndexOf("/"));
-                    WebResource resource = client.resource(String.format("%s/%s", url, lastSegment));
-                    try {
-                        ClientResponse response = resource.type(MediaType.APPLICATION_JSON_TYPE).post(
-                                ClientResponse.class, Blobs.createJSONBlobFromValue(jsonArray).getString());
-                        if (response.getStatus() != ClientResponse.Status.OK.getStatusCode()) {
-                            throw new NuxeoException(String.format(
-                                    "Zapier errors with status %d. Check your Zapier account.\n Request URL: %s\n Resolver Id: %s\n Username: %s",
-                                    response.getStatus(), url, notification.getResolverId(), username));
-                        }
-                    } catch (IOException e) {
-                        throw new NuxeoException(e);
-                    }
+                    triggerSingleWebHooks(notification, username, client, jsonArray, webHooks);
+                    // TODO: List<String> ids = webHooks.stream().map((WebHook::getId)).collect(Collectors.toList());
+                    // TODO: triggerMultipleWebHooks(notification, username, client, jsonArray, webHooks, ids);
                 });
             }
 
         });
     }
 
+    // TODO: once Zapier will be able to return the 410 response correctly for multiple webhooks we can use it
+    // TODO: be careful with the replacement of 'standard' by 'catch' in the url
+    // TODO: https://zapier.com/help/webhooks/#triggering-multiple-webhooks-at-once
+    protected void triggerMultipleWebHooks(Notification notification, String username, Client client,
+            List<Map<String, String>> jsonArray, List<WebHook> webHooks, List<String> ids) {
+        String lastSegment = StringUtils.join(ids, ",");
+        String example = webHooks.get(0).getTargetUrl();
+        if (example.endsWith("/"))
+            example = example.substring(0, example.length() - 2);
+        String url = example.substring(0, example.lastIndexOf("/"));
+        String finalUrl = String.format("%s/%s", url, lastSegment);
+        WebResource resource = client.resource(finalUrl);
+        try {
+            ClientResponse response = resource.type(MediaType.APPLICATION_JSON_TYPE).post(ClientResponse.class,
+                    Blobs.createJSONBlobFromValue(jsonArray).getString());
+            if (response.getStatus() != ClientResponse.Status.OK.getStatusCode()) {
+                throw new NuxeoException(String.format(
+                        "Zapier errors with status %d. Check your Zapier account.\n Request URL: %s\n Resolver Id: %s\n Username: %s",
+                        response.getStatus(), finalUrl, notification.getResolverId(), username));
+            }
+        } catch (IOException e) {
+            throw new NuxeoException(e);
+        }
+    }
+
+    protected void triggerSingleWebHooks(Notification notification, String username, Client client,
+            List<Map<String, String>> jsonArray, List<WebHook> webHooks) {
+        webHooks.forEach(webHook -> {
+            WebResource resource = client.resource(webHook.getTargetUrl());
+            try {
+                ClientResponse response = resource.type(MediaType.APPLICATION_JSON_TYPE).post(ClientResponse.class,
+                        Blobs.createJSONBlobFromValue(jsonArray).getString());
+                if (response.getStatus() != ClientResponse.Status.OK.getStatusCode()) {
+                    throw new NuxeoException(String.format(
+                            "Zapier errors with status %d. Check your Zapier account.\n Request URL: %s\n Resolver Id: %s\n Username: %s",
+                            response.getStatus(), webHook.getTargetUrl(), notification.getResolverId(), username));
+                } else if (response.getStatus() == ClientResponse.Status.GONE.getStatusCode()) {
+                    // Clean webhook removed on Zapier
+                    removeWebHook(username, webHook.getId());
+                }
+            } catch (ClientHandlerException | IOException e) {
+                throw new NuxeoException(e);
+            }
+        });
+
+    }
 
     protected void addBlobURL(Map<String, String> idJson, DocumentModel document) {
         if (document.hasSchema("file") && document.getPropertyValue("file:content") != null) {
@@ -186,6 +220,7 @@ public class ZapierComponent extends DefaultComponent implements ZapierService {
             idJson.put("binary", Framework.getProperty("nuxeo.url", "http://localhost:8080/nuxeo") + "/" + url);
         }
     }
+
     @Override
     public void storeWebHooks(String entryId, List<WebHook> webHookList) {
         WebHooks webHooks = new WebHooks();
@@ -214,7 +249,7 @@ public class ZapierComponent extends DefaultComponent implements ZapierService {
     public WebHook fetchWebHook(String entryId, String zapId) {
         List<WebHook> webHooks = fetchWebHooks(entryId);
         Optional<WebHook> webHook = webHooks.stream().filter((hook) -> hook.getId().equals(zapId)).findAny();
-        return webHook.get();
+        return webHook.orElse(null);
     }
 
     @Override
@@ -226,13 +261,17 @@ public class ZapierComponent extends DefaultComponent implements ZapierService {
         return webHook;
     }
 
+    @Override
+    public void invalidateKVS(String keyId) {
+        getKVS().put(keyId, (byte[]) null);
+    }
+
     protected KeyValueStore getKVS() {
         return Framework.getService(KeyValueService.class).getKeyValueStore(HOOK_CACHE_ID);
     }
 
     @Override
     public <T> T getAdapter(Class<T> adapter) {
-        keyValueService = Framework.getService(KeyValueService.class);
         ttl = Long.parseLong(Constants.NOTIFICATION_CACHE_DEFAULT_TTL);
         return super.getAdapter(adapter);
     }
@@ -246,7 +285,8 @@ public class ZapierComponent extends DefaultComponent implements ZapierService {
         DocumentLocation docLoc = new DocumentLocationImpl(notification.getSourceRepository(),
                 notification.getSourceRef());
         DocumentView docView = new DocumentViewImpl(docLoc, "view_documents");
-        return viewCodecManager.getUrlFromDocumentView(docView, true, Framework.getProperty("nuxeo.url"));
+        return viewCodecManager.getUrlFromDocumentView(docView, true,
+                Framework.getProperty("nuxeo.url", "http://localhost:8080/nuxeo"));
     }
 
     public static String getUserName(String username) {

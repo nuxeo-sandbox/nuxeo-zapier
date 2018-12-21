@@ -146,6 +146,7 @@ public class ZapierComponent extends DefaultComponent implements ZapierService {
                     idJson.put("originatingEvent", context.get("originatingEvent"));
                     idJson.put("originatingUser", getUserName(context.get("originatingUser")));
                     idJson.put("repositoryId", notification.getSourceRepository());
+                    addBlobURL(idJson, document);
                     jsonArray.add(idJson);
 
                     // Compute url with all existing webhooks for the given resolver
@@ -177,6 +178,14 @@ public class ZapierComponent extends DefaultComponent implements ZapierService {
         });
     }
 
+
+    protected void addBlobURL(Map<String, String> idJson, DocumentModel document) {
+        if (document.hasSchema("file") && document.getPropertyValue("file:content") != null) {
+            DownloadService downloadService = Framework.getService(DownloadService.class);
+            String url = downloadService.getDownloadUrl(document, "file:content", null);
+            idJson.put("binary", Framework.getProperty("nuxeo.url", "http://localhost:8080/nuxeo") + "/" + url);
+        }
+    }
     @Override
     public void storeWebHooks(String entryId, List<WebHook> webHookList) {
         WebHooks webHooks = new WebHooks();

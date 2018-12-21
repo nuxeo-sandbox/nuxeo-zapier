@@ -71,6 +71,7 @@ public class WebHookObject extends ModuleRoot {
         idJson.put("originatingEvent", "documentModified");
         idJson.put("docLifeCycle", "documentState");
         idJson.put("repositoryId", "repositoryId");
+        idJson.put("binary", "binaryIfExist");
         jsonArray.add(idJson);
         return Blobs.createJSONBlobFromValue(jsonArray);
     }

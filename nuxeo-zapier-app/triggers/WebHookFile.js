@@ -6,6 +6,7 @@
  * Contributors:
  *     Nuxeo
  */
+const hydrators = require('../hydrators');
 const subscribeHook = (z, bundle) => {
   const data = {
     url: bundle.targetUrl,
@@ -33,12 +34,18 @@ const unsubscribeHook = (z, bundle) => {
     url: `${bundle.authData.url}/nuxeo/site/hook/${hookId}`,
     method: 'DELETE',
   };
-  return z.request(options)
-    .then((response) => JSON.parse(response.content));
+  return z.request(options).then((response) => JSON.parse(response.content));
 };
 
 const getNotifications = (z, bundle) => {
-  return bundle.cleanedRequest;
+  const notification = bundle.cleanedRequest;
+  if ('binary' in notification) {
+    notification.binary = z.dehydrate(hydrators.downloadFile, {
+      url: notification.binary,
+    });
+  }
+  z.console.log("WebHookFile - After Getting notification:" + JSON.stringify(notification));
+  return notification;
 };
 
 const triggerNotificationWebHook = (z, bundle) => {

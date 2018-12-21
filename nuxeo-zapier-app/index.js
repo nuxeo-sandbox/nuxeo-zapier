@@ -15,6 +15,7 @@ const DocumentUpdate = require('./creates/documentUpdate');
 const DocumentAttach = require('./creates/documentAttach');
 const StartWorkflow = require('./creates/startWorkflow');
 const FileManager = require('./creates/fileImporter');
+const hydrators = require('./hydrators');
 
 const handleHTTPError = (response) => {
   if (response.status >= 400) {
@@ -46,6 +47,8 @@ const App = {
   ],
 
   resources: {},
+
+  hydrators: hydrators,
 
   triggers: {
     [WebHook.key]: WebHook,

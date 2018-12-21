@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<component name="org.nuxeo.zapier.operation.coreContrib" version="1.0">
+  <extension target="org.nuxeo.ecm.core.operation.OperationServiceComponent"
+             point="operations">
+    <operation class="org.nuxeo.zapier.operation.ZapierKVSCleanup"/>
+  </extension>
+</component>

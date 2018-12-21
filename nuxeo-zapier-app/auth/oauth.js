@@ -78,7 +78,6 @@ module.exports = {
       url: `{{bundle.inputData.url}}/nuxeo/oauth2/authorize`,
       params: {
         client_id: 'nuxeo-zapier',
-        state: '{{bundle.inputData.state}}',
         redirect_uri: '{{bundle.inputData.redirect_uri}}',
         response_type: 'code',
       },

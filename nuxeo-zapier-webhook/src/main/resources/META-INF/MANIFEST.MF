@@ -10,5 +10,5 @@ Nuxeo-WebModule: org.nuxeo.ecm.webengine.app.WebEngineModule;name=register;exten
 Nuxeo-Component: OSGI-INF/zapier-cache-config.xml,
  OSGI-INF/zapier-hook-marshaller-contrib.xml,
  OSGI-INF/zapier-component-service.xml,
- OSGI-INF/zapier-notifier.xml
-
+ OSGI-INF/zapier-notification-contrib.xml,
+ OSGI-INF/zapier-operation-contrib.xml

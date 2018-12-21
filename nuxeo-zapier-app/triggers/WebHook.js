@@ -70,7 +70,7 @@ const getRequest = (bundle, notificationId) => {
     url: `${bundle.authData.url}/nuxeo/api/v1/notification/resolver/${notificationId}`,
     params: {},
   }
-}
+};
 
 module.exports = {
   key: 'webHook',

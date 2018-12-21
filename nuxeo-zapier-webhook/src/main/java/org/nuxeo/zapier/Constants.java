@@ -43,5 +43,4 @@ public class Constants {
 
     public static final String HOOK_CACHE_ID = "zapier-hook-cache";
 
-    public static final String ZAPIER = "zapier";
 }

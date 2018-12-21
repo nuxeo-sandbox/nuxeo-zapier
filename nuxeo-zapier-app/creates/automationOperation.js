@@ -109,7 +109,7 @@ const getRequest = (bundle, operationId = '') => {
     url: `${bundle.authData.url}/nuxeo/site/automation/${operationId}`,
     params: {},
   }
-}
+};
 
 module.exports = {
   key: 'automation',

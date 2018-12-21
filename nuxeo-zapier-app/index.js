@@ -16,7 +16,7 @@ const DocumentAttach = require('./creates/documentAttach');
 const StartWorkflow = require('./creates/startWorkflow');
 const FileManager = require('./creates/fileImporter');
 
-const handleHTTPError = (response, z) => {
+const handleHTTPError = (response) => {
   if (response.status >= 400) {
     throw new Error(`Unexpected status code ${response.status}`);
   }

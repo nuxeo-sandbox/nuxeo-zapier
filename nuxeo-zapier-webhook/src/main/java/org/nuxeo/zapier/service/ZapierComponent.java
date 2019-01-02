@@ -166,7 +166,7 @@ public class ZapierComponent extends DefaultComponent implements ZapierService {
         });
     }
 
-    // TODO: once Zapier will be able to return the 410 response correctly for multiple webhooks we can use it
+    // TODO: NXP-26575
     // TODO: be careful with the replacement of 'standard' by 'catch' in the url
     // TODO: https://zapier.com/help/webhooks/#triggering-multiple-webhooks-at-once
     protected void triggerMultipleWebHooks(Notification notification, String username, Client client,

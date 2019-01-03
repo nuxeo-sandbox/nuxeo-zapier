@@ -39,12 +39,11 @@ const unsubscribeHook = (z, bundle) => {
 
 const getNotifications = (z, bundle) => {
   const notification = bundle.cleanedRequest;
-  if ('binary' in notification) {
-    notification.binary = z.dehydrate(hydrators.downloadFile, {
-      url: notification.binary,
+  if ('binary' in notification[0]) {
+    notification[0].binary = z.dehydrate(hydrators.downloadFile, {
+      url: notification[0].binary,
     });
   }
-  z.console.log("WebHookFile - After Getting notification:" + JSON.stringify(notification));
   return notification;
 };
 

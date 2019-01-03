@@ -1,10 +1,17 @@
 const hydrators = {
   downloadFile: (z, bundle) => {
+    // use standard auth to request the file
     const filePromise = z.request({
-      url: bundle.url,
+      url: bundle.inputData.url,
       raw: true
     });
-    return z.JSON.parse(filePromise.content) || {};
+
+    // and swap it for a stashed URL
+    return z.stashFile(filePromise)
+      .then((url) => {
+        z.console.log(`Stashed URL = ${url}`);
+        return url;
+      });
   },
 };
 

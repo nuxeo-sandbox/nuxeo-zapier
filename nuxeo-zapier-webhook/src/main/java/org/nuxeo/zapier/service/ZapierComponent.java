@@ -96,7 +96,8 @@ public class ZapierComponent extends DefaultComponent implements ZapierService {
                 if (s.query(filter).isEmpty()) {
                     s.createEntry(ImmutableMap.of(Constants.CLIENT_ID, Constants.NUXEO_ZAPIER, Constants.NAME,
                             Constants.NUXEO_ZAPIER_NAME, Constants.REDIRECT_UR_IS,
-                            Framework.getProperty(Constants.ZAPIER_REDIRECT_URI_KEY, "http://example"),
+                            Framework.getProperty(Constants.ZAPIER_REDIRECT_URI_KEY,
+                                    "https://zapier.com/dashboard/auth/oauth/return/App7494CLIAPI/"),
                             Constants.ENABLED, true, Constants.AUTO_GRANT, true));
                 }
             }

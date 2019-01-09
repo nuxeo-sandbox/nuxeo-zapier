@@ -22,6 +22,9 @@
     <copy todir="${outdir}/marketplace/install/bundles">
       <!-- Your bundles -->
       <artifact:file key="org.nuxeo.zapier:nuxeo-zapier-webhook" />
+      <artifact:file key="org.nuxeo.ecm.platform:nuxeo-notification-stream-core" />
+      <artifact:file key="org.nuxeo.ecm.platform:nuxeo-notification-stream-default" />
+      <artifact:file key="org.nuxeo.ecm.platform:nuxeo-notification-stream-rest" />
     </copy>
     <!-- Whereas the marketplace build using an NXR is automatically downloading the
     required libraries, that simpler solution requires you explicitly list them -->

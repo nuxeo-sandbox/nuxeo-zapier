@@ -23,7 +23,10 @@ import static org.nuxeo.zapier.Constants.HOOK_CACHE_ID;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +37,7 @@ import java.util.stream.Stream;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.lang3.StringUtils;
+import org.nuxeo.ecm.automation.core.util.JSONPropertyWriter;
 import org.nuxeo.ecm.core.api.Blobs;
 import org.nuxeo.ecm.core.api.CloseableCoreSession;
 import org.nuxeo.ecm.core.api.CoreInstance;
@@ -43,7 +47,9 @@ import org.nuxeo.ecm.core.api.IdRef;
 import org.nuxeo.ecm.core.api.NuxeoException;
 import org.nuxeo.ecm.core.api.NuxeoPrincipal;
 import org.nuxeo.ecm.core.api.impl.DocumentLocationImpl;
+import org.nuxeo.ecm.core.api.model.Property;
 import org.nuxeo.ecm.core.io.download.DownloadService;
+import org.nuxeo.ecm.core.schema.SchemaManager;
 import org.nuxeo.ecm.directory.Session;
 import org.nuxeo.ecm.directory.api.DirectoryService;
 import org.nuxeo.ecm.notification.NotificationService;
@@ -68,6 +74,8 @@ import org.nuxeo.zapier.webhook.WebHooks;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.google.common.collect.ImmutableMap;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientHandlerException;
@@ -141,29 +149,40 @@ public class ZapierComponent extends DefaultComponent implements ZapierService {
                     // Posting notification(s) to Zapier
                     ClientConfig config = new DefaultClientConfig();
                     Client client = Client.create(config);
-                    List<Map<String, String>> jsonArray = new ArrayList<>();
-                    Map<String, String> idJson = new HashMap<>();
-                    idJson.put("id", notification.getSourceId());
-                    idJson.put("url", getURL(notification));
-                    idJson.put("title", document.getTitle());
-                    idJson.put("state", document.getCurrentLifeCycleState());
-                    idJson.put("originatingEvent", context.get("originatingEvent"));
-                    idJson.put("originatingUser", getUserName(context.get("originatingUser")));
-                    idJson.put("repositoryId", notification.getSourceRepository());
-                    addBlobURL(idJson, document);
-                    jsonArray.add(idJson);
+                    try {
+                        Writer writer = new StringWriter();
+                        JsonGenerator g = new JsonFactory().createGenerator(writer);
 
-                    // Compute url with all existing webhooks for the given resolver
-                    List<WebHook> webHooks = fetchWebHooks(username).stream()
-                                                                    .filter(webHook -> webHook.getResolverId().equals(
-                                                                            notification.getResolverId()))
-                                                                    .collect(Collectors.toList());
-                    triggerSingleWebHooks(notification, username, client, jsonArray, webHooks);
-                    // TODO: List<String> ids = webHooks.stream().map((WebHook::getId)).collect(Collectors.toList());
-                    // TODO: triggerMultipleWebHooks(notification, username, client, jsonArray, webHooks, ids);
+                        g.writeStartArray();
+                        g.writeStartObject();
+                        g.writeStringField("id", notification.getSourceId());
+                        g.writeStringField("url", getURL(notification));
+                        g.writeStringField("title", document.getTitle());
+                        g.writeStringField("state", document.getCurrentLifeCycleState());
+                        g.writeStringField("originatingEvent", context.get("originatingEvent"));
+                        g.writeStringField("originatingUser", getUserName(context.get("originatingUser")));
+                        g.writeStringField("repositoryId", notification.getSourceRepository());
+                        writeProperties(g, document);
+                        addBlobURL(g, document);
+                        g.writeEndObject();
+                        g.writeEndArray();
+
+                        g.close();
+                        // Compute url with all existing webhooks for the given resolver
+                        List<WebHook> webHooks = fetchWebHooks(
+                                username).stream()
+                                         .filter(webHook -> webHook.getResolverId()
+                                                                   .equals(notification.getResolverId()))
+                                         .collect(Collectors.toList());
+                        triggerSingleWebHooks(notification, username, client, writer.toString(), webHooks);
+                        // TODO: List<String> ids =
+                        // webHooks.stream().map((WebHook::getId)).collect(Collectors.toList());
+                        // TODO: triggerMultipleWebHooks(notification, username, client, jsonArray, webHooks, ids);
+                    } catch (IOException e) {
+                        throw new NuxeoException(e);
+                    }
                 });
             }
-
         });
     }
 
@@ -192,13 +211,13 @@ public class ZapierComponent extends DefaultComponent implements ZapierService {
         }
     }
 
-    protected void triggerSingleWebHooks(Notification notification, String username, Client client,
-            List<Map<String, String>> jsonArray, List<WebHook> webHooks) {
+    protected void triggerSingleWebHooks(Notification notification, String username, Client client, String body,
+            List<WebHook> webHooks) {
         webHooks.forEach(webHook -> {
             WebResource resource = client.resource(webHook.getTargetUrl());
             try {
                 ClientResponse response = resource.type(MediaType.APPLICATION_JSON_TYPE).post(ClientResponse.class,
-                        Blobs.createJSONBlobFromValue(jsonArray).getString());
+                        body);
                 if (response.getStatus() != ClientResponse.Status.OK.getStatusCode()) {
                     throw new NuxeoException(String.format(
                             "Zapier errors with status %d. Check your Zapier account.\n Request URL: %s\n Resolver Id: %s\n Username: %s",
@@ -207,18 +226,44 @@ public class ZapierComponent extends DefaultComponent implements ZapierService {
                     // Clean webhook removed on Zapier
                     removeWebHook(username, webHook.getId());
                 }
-            } catch (ClientHandlerException | IOException e) {
+            } catch (ClientHandlerException e) {
                 throw new NuxeoException(e);
             }
         });
 
     }
 
-    protected void addBlobURL(Map<String, String> idJson, DocumentModel document) {
+    protected void addBlobURL(JsonGenerator g, DocumentModel document) throws IOException {
+        if (document.hasSchema("file") && document.getPropertyValue("file:content") != null) {
+            DownloadService downloadService = Framework.getService(DownloadService.class);
+            String url = downloadService.getDownloadUrl(document, "file:content", null);
+            g.writeStringField("binary", Framework.getProperty("nuxeo.url", "http://localhost:8080/nuxeo") + "/" + url);
+        }
+    }
+
+    protected void addAllMetadata(Map<String, String> idJson, DocumentModel document) {
         if (document.hasSchema("file") && document.getPropertyValue("file:content") != null) {
             DownloadService downloadService = Framework.getService(DownloadService.class);
             String url = downloadService.getDownloadUrl(document, "file:content", null);
             idJson.put("binary", Framework.getProperty("nuxeo.url", "http://localhost:8080/nuxeo") + "/" + url);
+        }
+    }
+
+    protected void writeProperties(JsonGenerator jg, DocumentModel doc) throws IOException {
+        for (String schema : doc.getSchemas()) {
+            Collection<Property> properties = doc.getPropertyObjects(schema);
+            if (properties.isEmpty()) {
+                return;
+            }
+            SchemaManager schemaManager = Framework.getService(SchemaManager.class);
+            String prefix = schemaManager.getSchema(schema).getNamespace().prefix;
+            if (prefix == null || prefix.length() == 0) {
+                prefix = schema;
+            }
+            JSONPropertyWriter writer = JSONPropertyWriter.create().writeNull(false).writeEmpty(false).prefix(prefix);
+            for (Property p : properties) {
+                writer.writeProperty(jg, p);
+            }
         }
     }
 

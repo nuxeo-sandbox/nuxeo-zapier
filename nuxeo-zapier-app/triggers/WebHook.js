@@ -49,12 +49,22 @@ const getNotifications = (z, bundle) => {
 
 const triggerNotificationWebHook = (z, bundle) => {
   const request = {
-    url: `${bundle.authData.url}/nuxeo/site/hook/example`,
-    params: {},
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    url: `${bundle.authData.url}/nuxeo/site/hook/example?${getQueryListParams('schemas', bundle.inputData.schemas)}`,
   };
   return z.request(request).then((response) => {
     return z.JSON.parse(response.content);
   });
+};
+
+const getQueryListParams = (id, list) => {
+  let params = '';
+  list.forEach((entry) => {
+    params += `${id}=${entry}&`;
+  });
+  return params;
 };
 
 const fetchDescription = (z, resolverId, bundle) => {
@@ -149,6 +159,27 @@ module.exports = {
           });
         }
         return [];
+      },
+      // Schemas to fetch from the sample
+      function (z, bundle) {
+        const request = {
+          url: `${bundle.authData.url}/nuxeo/api/v1/config/schemas`,
+          params: {},
+        };
+        return z.request(request).then((response) => {
+          const schemas = JSON.parse(response.content);
+          let entries = {};
+          entries.key = 'schemas';
+          entries.label = 'Schemas';
+          entries.helpText = 'Choose schema(s) to map for the next template';
+          entries.choices = {};
+          entries.list = true;
+          entries.default = 'dublincore';
+          schemas.forEach((schema) => {
+            entries.choices[schema.name] = schema.name;
+          });
+          return entries;
+        });
       },
     ],
 

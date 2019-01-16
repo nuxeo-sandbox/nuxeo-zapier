@@ -17,7 +17,8 @@
 package org.nuxeo.zapier.webhook;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,16 +29,22 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.nuxeo.ecm.core.api.Blob;
 import org.nuxeo.ecm.core.api.Blobs;
+import org.nuxeo.ecm.core.schema.SchemaManager;
+import org.nuxeo.ecm.core.schema.types.Field;
+import org.nuxeo.ecm.core.schema.types.Schema;
 import org.nuxeo.ecm.webengine.model.WebObject;
 import org.nuxeo.ecm.webengine.model.impl.ModuleRoot;
 import org.nuxeo.runtime.api.Framework;
 import org.nuxeo.zapier.service.ZapierService;
 
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.sun.jersey.api.NotFoundException;
 
 /**
@@ -61,19 +68,30 @@ public class WebHookObject extends ModuleRoot {
 
     @GET
     @Path("/example")
-    public Blob getExample() throws IOException {
-        List<Map<String, String>> jsonArray = new ArrayList<>();
-        Map<String, String> idJson = new HashMap<>();
-        idJson.put("id", "documentId");
-        idJson.put("url", "documentURL");
-        idJson.put("title", "documentTitle");
-        idJson.put("originatingUser", "byWho");
-        idJson.put("originatingEvent", "documentModified");
-        idJson.put("docLifeCycle", "documentState");
-        idJson.put("repositoryId", "repositoryId");
-        idJson.put("binary", "binaryIfExist");
-        jsonArray.add(idJson);
-        return Blobs.createJSONBlobFromValue(jsonArray);
+    public Blob getExample(@QueryParam("schemas") final List<String> schemas) throws IOException {
+        Writer writer = new StringWriter();
+        JsonGenerator g = new JsonFactory().createGenerator(writer);
+        g.writeStartArray();
+        g.writeStartObject();
+        g.writeStringField("id", "documentId");
+        g.writeStringField("url", "documentURL");
+        g.writeStringField("title", "documentTitle");
+        g.writeStringField("state", "documentState");
+        g.writeStringField("originatingEvent", "documentModified");
+        g.writeStringField("originatingUser", "byWho");
+        g.writeStringField("repositoryId", "default");
+        g.writeStringField("binary", "binaryIfExist");
+        SchemaManager schemaMgr = Framework.getService(SchemaManager.class);
+        for (String schemaId : schemas) {
+            Schema schema = schemaMgr.getSchema(schemaId);
+            for (Field field : schema.getFields()) {
+                g.writeObjectField(String.format("%s:%s", schemaId, field.getName().getLocalName()), null);
+            }
+        }
+        g.writeEndObject();
+        g.writeEndArray();
+        g.close();
+        return Blobs.createJSONBlob(writer.toString());
     }
 
     @DELETE

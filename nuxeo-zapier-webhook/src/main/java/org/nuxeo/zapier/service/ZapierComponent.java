@@ -49,7 +49,6 @@ import org.nuxeo.ecm.core.api.NuxeoPrincipal;
 import org.nuxeo.ecm.core.api.impl.DocumentLocationImpl;
 import org.nuxeo.ecm.core.api.model.Property;
 import org.nuxeo.ecm.core.io.download.DownloadService;
-import org.nuxeo.ecm.core.schema.SchemaManager;
 import org.nuxeo.ecm.directory.Session;
 import org.nuxeo.ecm.directory.api.DirectoryService;
 import org.nuxeo.ecm.notification.NotificationService;
@@ -199,8 +198,9 @@ public class ZapierComponent extends DefaultComponent implements ZapierService {
         String finalUrl = String.format("%s/%s", url, lastSegment);
         WebResource resource = client.resource(finalUrl);
         try {
-            ClientResponse response = resource.type(MediaType.APPLICATION_JSON_TYPE).post(ClientResponse.class,
-                    Blobs.createJSONBlobFromValue(jsonArray).getString());
+            ClientResponse response = resource.type(MediaType.APPLICATION_JSON_TYPE)
+                                              .post(ClientResponse.class,
+                                                      Blobs.createJSONBlobFromValue(jsonArray).getString());
             if (response.getStatus() != ClientResponse.Status.OK.getStatusCode()) {
                 throw new NuxeoException(String.format(
                         "Zapier errors with status %d. Check your Zapier account.\n Request URL: %s\n Resolver Id: %s\n Username: %s",
@@ -216,8 +216,8 @@ public class ZapierComponent extends DefaultComponent implements ZapierService {
         webHooks.forEach(webHook -> {
             WebResource resource = client.resource(webHook.getTargetUrl());
             try {
-                ClientResponse response = resource.type(MediaType.APPLICATION_JSON_TYPE).post(ClientResponse.class,
-                        body);
+                ClientResponse response = resource.type(MediaType.APPLICATION_JSON_TYPE)
+                                                  .post(ClientResponse.class, body);
                 if (response.getStatus() != ClientResponse.Status.OK.getStatusCode()) {
                     throw new NuxeoException(String.format(
                             "Zapier errors with status %d. Check your Zapier account.\n Request URL: %s\n Resolver Id: %s\n Username: %s",
@@ -255,12 +255,7 @@ public class ZapierComponent extends DefaultComponent implements ZapierService {
             if (properties.isEmpty()) {
                 return;
             }
-            SchemaManager schemaManager = Framework.getService(SchemaManager.class);
-            String prefix = schemaManager.getSchema(schema).getNamespace().prefix;
-            if (prefix == null || prefix.length() == 0) {
-                prefix = schema;
-            }
-            JSONPropertyWriter writer = JSONPropertyWriter.create().writeNull(false).writeEmpty(false).prefix(prefix);
+            JSONPropertyWriter writer = JSONPropertyWriter.create().writeNull(false).writeEmpty(false).prefix(schema);
             for (Property p : properties) {
                 writer.writeProperty(jg, p);
             }

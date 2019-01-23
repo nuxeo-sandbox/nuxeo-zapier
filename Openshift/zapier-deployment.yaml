@@ -48,7 +48,7 @@ spec:
           value: |
             nuxeo.instance.type=front
         - name: NUXEO_PACKAGES
-          value: nuxeo-jsf-ui nuxeo-notifications-stream
+          value: nuxeo-jsf-ui
         - name: NUXEO_CLID
           value: 'dd9501ff-fbd9-4758-8a7c-f9d839ef18d8.1810494513.Pm221bY6j4jzQcjci6AIpNNhVNRHBPDG2RNr3jdJgqHjW0msNWOB2YRKinrzWw+4apy6vklhyPbISylWs4QXinye/D68XUWSyn78D9F7vQ594T4n9+A3LVCUBoib7fzmiPRYme0NKcVqOiu7jOWUMalCfWTqm5DNiTnzlnRDqT45nsKSUXjq2YMwRpeHxzh2quoa/b0/jeSgLSXBkmTsTUZrAZBx1gqJZSLBYmN/0bkJ4jkG1jYjPHWPR/Qpjz+iF+6d5A6t3B/rlaqBkw4W/50u/Xg1gt/Ouz/wyiGIJ5+2NtI15oilbWQzNmTt3wLNo2RatHpzwDXhEQSLU1skBw==--338358dd-858e-4821-bad9-72bae7ae511e'
         - name: NUXEO_BINARY_STORE

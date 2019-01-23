@@ -47,7 +47,7 @@ spec:
           value: '/home/nuxeo'
       from:
         kind: DockerImage
-        name: 'nuxeo/s2i:10.2-with-jars'
+        name: 'nuxeo/s2i:latest'
     type: Source
   successfulBuildsHistoryLimit: 2
   failedBuildsHistoryLimit: 2

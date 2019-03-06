@@ -9,6 +9,7 @@
   <extension target="org.nuxeo.ecm.notification.NotificationComponent" point="settings">
     <settings id="zapierEvent">
       <notifier name="zapier" default="true" />
+      <notifier name="mail" default="false" />
     </settings>
   </extension>
 </component>
